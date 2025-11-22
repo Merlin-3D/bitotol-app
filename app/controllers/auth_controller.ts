@@ -7,9 +7,8 @@ export default class AuthController {
 
     try {
       const user = await User.verifyCredentials(name, password)
-
       if (!user) {
-        return inertia.render('/login', {
+        return inertia.render('home', {
           error: 'Le nom ou le mot de passe incorrect.',
           success: null,
         })
@@ -18,7 +17,7 @@ export default class AuthController {
       await auth.use('web').login(user)
       return response.redirect('/dashboard/home')
     } catch (error) {
-      return inertia.render('/login', {
+      return inertia.render('home', {
         error: error.messages || error,
         success: null,
       })

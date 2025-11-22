@@ -10,18 +10,10 @@ import LogoutIcon from '~/components/icons/logout.icon'
 import XMarkIcon from '~/components/icons/xmark.icon'
 import CustomerIcon from '~/components/icons/customers.icon'
 import ProductsIcon from '~/components/icons/products.icon'
-import CategoryIcon from '~/components/icons/category.icon'
 import StockIcon from '~/components/icons/stock.icon'
 import InvoiceIcon from '~/components/icons/invoice.icon'
 import WarehouseIcon from '~/components/icons/warehouse.icon'
 import InventoryIcon from '~/components/icons/inventory.icon'
-
-// import XMarkIcon from '~/pages/web/components/icons/xmark.icon'
-// import DashboardIcon from '~/pages/web/components/icons/dashboard.icon'
-// import CustomerIcon from '~/pages/web/components/icons/customers.icon'
-// import DocumentIcon from '~/pages/web/components/icons/document.icon'
-// import LogoutIcon from '~/pages/web/components/icons/logout.icon'
-// import ProjectIcon from '~/pages/web/components/icons/project.icon'
 
 const navItems = [
   {
@@ -39,11 +31,11 @@ const navItems = [
     href: '#',
     icon: ProductsIcon,
   },
-  {
-    name: 'Catégories',
-    href: '#',
-    icon: CategoryIcon,
-  },
+  // {
+  //   name: 'Catégories',
+  //   href: '#',
+  //   icon: CategoryIcon,
+  // },
   {
     name: 'Stocks',
     href: '#',
@@ -56,7 +48,7 @@ const navItems = [
   },
   {
     name: 'Entrepôts',
-    href: '#',
+    href: '/dashboard/warehouses',
     icon: WarehouseIcon,
   },
   {
@@ -77,14 +69,14 @@ export default function Sidebar({ sidebarOpen, onClose }: SidebarProps) {
   const { post } = useForm()
 
   const handleLogout = () => {
-    post('/admin/logout')
+    post('/dashboard/logout')
   }
 
   return (
     <>
       <div className="hidden xl:flex flex-col h-full border-gray-200 fixed top-0 z-10 pt-20">
         <div className="px-2 fixed top-0 w-64 h-20 border-b border-line flex items-center justify-between">
-          <a href="/admin/dashboard" className="flex items-center gap-4">
+          <a href="/dashboard/dashboard" className="flex items-center gap-4">
             <img src={logoBlack} alt="" className="h-10 w-10" />
             <h1 className="font-semibold text-xl">KAISEN</h1>
           </a>

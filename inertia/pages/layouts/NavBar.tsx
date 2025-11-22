@@ -16,19 +16,18 @@ export default function Navbar({ onClose }: NavbarProps) {
   const { props } = usePage<any>()
 
   const handleLogout = () => {
-    post('/admin/logout')
+    post('/dashboard/logout')
   }
-
   const getInitials = (user: any) => {
-    if (user.fullName) {
-      return user.fullName
+    if (user.name) {
+      return user.name
         .split(' ')
         .map((name: any) => name.charAt(0))
         .join('')
         .toUpperCase()
         .slice(0, 2)
     }
-    return user.email.charAt(0).toUpperCase()
+    return user.name.charAt(0).toUpperCase()
   }
   return (
     <header className="top-0 sticky left-64 right-0 h-[72px] bg-white border-b border-gray-200 rounded-t-xl z-20 flex items-center justify-between px-6">
@@ -74,20 +73,20 @@ export default function Navbar({ onClose }: NavbarProps) {
                       aria-hidden="true"
                       className="capitalize ml-2 text-sm/6 font-semibold text-gray-900"
                     >
-                      {props.user ? props.user.fullName : ''}
+                      {props.user ? props.user.name : ''}
                     </span>
                     <ChevronIcon aria-hidden="true" className="ml-2 size-3 text-gray-400" />
                   </span>
                 </MenuButton>
                 <MenuItems
                   transition
-                  className="absolute right-0 z-10 mt-2.5 w-32 origin-top-right rounded-md bg-white py-2 shadow-lg outline outline-1 outline-gray-900/5 transition data-[closed]:scale-95 data-[closed]:transform data-[closed]:opacity-0 data-[enter]:duration-100 data-[leave]:duration-75 data-[enter]:ease-out data-[leave]:ease-in"
+                  className="cursor-pointer absolute right-0 z-10 mt-2.5 w-32 origin-top-right rounded-md bg-white py-2 shadow-lg outline outline-1 outline-gray-900/5 transition data-[closed]:scale-95 data-[closed]:transform data-[closed]:opacity-0 data-[enter]:duration-100 data-[leave]:duration-75 data-[enter]:ease-out data-[leave]:ease-in"
                 >
                   {userNavigation.map((item) => (
                     <MenuItem key={item.name}>
                       <button
                         onClick={() => handleLogout()}
-                        className="block px-3 py-1 text-sm/6 text-gray-900 data-[focus]:bg-gray-50 data-[focus]:outline-none"
+                        className="cursor-pointer block px-3 py-1 text-sm/6 text-gray-900 data-[focus]:bg-gray-50 data-[focus]:outline-none"
                       >
                         {item.name}
                       </button>

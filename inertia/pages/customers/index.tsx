@@ -1,260 +1,28 @@
 import { Column, DataTable } from '~/components/data-table'
 import AdminLayout from '../layouts/layout'
 import Button from '~/components/button'
-import { Link, router } from '@inertiajs/react'
+import { useForm } from '@inertiajs/react'
 import { ConfirmDialog } from '~/components/confirm-dialog'
 import { useState } from 'react'
+import CreateCustomer from './components/create-customer'
+import ThirdParties from '#models/third_parties'
+import { toast } from 'react-toastify'
 
-const people = [
-  {
-    reference: 'CUS-001',
-    name: 'Lindsay Walton',
-    email: 'deffomerlin@gmail.com',
-    phone: '+237 655413392',
-    description: 'Client fidèle depuis 2 ans',
-    district: 'Nkabang',
-  },
-  {
-    reference: 'CUS-002',
-    name: 'Michael Johnson',
-    email: 'm.johnson@yahoo.com',
-    phone: '+237 677889900',
-    description: 'Client occasionnel',
-    district: 'Bonapriso',
-  },
-  {
-    reference: 'CUS-003',
-    name: 'Sarah Chen',
-    email: 's.chen@hotmail.com',
-    phone: '+237 655112233',
-    description: 'Nouveau client',
-    district: 'Akwa',
-  },
-  {
-    reference: 'CUS-004',
-    name: 'David Muller',
-    email: 'd.muller@gmail.com',
-    phone: '+237 699887766',
-    description: 'Client VIP',
-    district: 'Deïdo',
-  },
-  {
-    reference: 'CUS-005',
-    name: 'Emma Rodriguez',
-    email: 'e.rodriguez@outlook.com',
-    phone: '+237 655334455',
-    description: 'Client régulier',
-    district: 'Bonanjo',
-  },
-  {
-    reference: 'CUS-006',
-    name: 'James Wilson',
-    email: 'j.wilson@gmail.com',
-    phone: '+237 677556677',
-    description: 'Client entreprise',
-    district: 'Akwa',
-  },
-  {
-    reference: 'CUS-007',
-    name: 'Sophie Martin',
-    email: 's.martin@yahoo.com',
-    phone: '+237 655778899',
-    description: 'Client particulier',
-    district: 'Bonapriso',
-  },
-  {
-    reference: 'CUS-008',
-    name: 'Robert Kim',
-    email: 'r.kim@gmail.com',
-    phone: '+237 699001122',
-    description: 'Client fidèle',
-    district: 'Nkabang',
-  },
-  {
-    reference: 'CUS-009',
-    name: 'Lisa Taylor',
-    email: 'l.taylor@hotmail.com',
-    phone: '+237 677334455',
-    description: 'Nouveau client',
-    district: 'Deïdo',
-  },
-  {
-    reference: 'CUS-010',
-    name: 'Thomas Brown',
-    email: 't.brown@outlook.com',
-    phone: '+237 655667788',
-    description: 'Client occasionnel',
-    district: 'Bonanjo',
-  },
-  {
-    reference: 'CUS-011',
-    name: 'Maria Garcia',
-    email: 'm.garcia@gmail.com',
-    phone: '+237 699889900',
-    description: 'Client VIP',
-    district: 'Akwa',
-  },
-  {
-    reference: 'CUS-012',
-    name: 'Kevin Davis',
-    email: 'k.davis@yahoo.com',
-    phone: '+237 677112233',
-    description: 'Client régulier',
-    district: 'Bonapriso',
-  },
-  {
-    reference: 'CUS-013',
-    name: 'Jennifer Lee',
-    email: 'j.lee@gmail.com',
-    phone: '+237 655445566',
-    description: 'Client entreprise',
-    district: 'Nkabang',
-  },
-  {
-    reference: 'CUS-014',
-    name: 'Daniel White',
-    email: 'd.white@hotmail.com',
-    phone: '+237 699778899',
-    description: 'Client fidèle',
-    district: 'Deïdo',
-  },
-  {
-    reference: 'CUS-015',
-    name: 'Amanda Scott',
-    email: 'a.scott@outlook.com',
-    phone: '+237 677990011',
-    description: 'Nouveau client',
-    district: 'Bonanjo',
-  },
-  {
-    reference: 'CUS-016',
-    name: 'Christopher Hall',
-    email: 'c.hall@gmail.com',
-    phone: '+237 655223344',
-    description: 'Client occasionnel',
-    district: 'Akwa',
-  },
-  {
-    reference: 'CUS-017',
-    name: 'Michelle Young',
-    email: 'm.young@yahoo.com',
-    phone: '+237 699556677',
-    description: 'Client régulier',
-    district: 'Bonapriso',
-  },
-  {
-    reference: 'CUS-018',
-    name: 'Richard King',
-    email: 'r.king@gmail.com',
-    phone: '+237 677889922',
-    description: 'Client VIP',
-    district: 'Nkabang',
-  },
-  {
-    reference: 'CUS-019',
-    name: 'Nicole Wright',
-    email: 'n.wright@hotmail.com',
-    phone: '+237 655112244',
-    description: 'Client particulier',
-    district: 'Deïdo',
-  },
-  {
-    reference: 'CUS-020',
-    name: 'Brian Lopez',
-    email: 'b.lopez@outlook.com',
-    phone: '+237 699334466',
-    description: 'Client fidèle',
-    district: 'Bonanjo',
-  },
-  {
-    reference: 'CUS-021',
-    name: 'Jessica Hill',
-    email: 'j.hill@gmail.com',
-    phone: '+237 677556688',
-    description: 'Nouveau client',
-    district: 'Akwa',
-  },
-  {
-    reference: 'CUS-022',
-    name: 'Steven Green',
-    email: 's.green@yahoo.com',
-    phone: '+237 655778800',
-    description: 'Client occasionnel',
-    district: 'Bonapriso',
-  },
-  {
-    reference: 'CUS-023',
-    name: 'Rebecca Adams',
-    email: 'r.adams@gmail.com',
-    phone: '+237 699001133',
-    description: 'Client régulier',
-    district: 'Nkabang',
-  },
-  {
-    reference: 'CUS-024',
-    name: 'Jason Nelson',
-    email: 'j.nelson@hotmail.com',
-    phone: '+237 677334466',
-    description: 'Client entreprise',
-    district: 'Deïdo',
-  },
-  {
-    reference: 'CUS-025',
-    name: 'Melissa Carter',
-    email: 'm.carter@outlook.com',
-    phone: '+237 655667799',
-    description: 'Client VIP',
-    district: 'Bonanjo',
-  },
-  {
-    reference: 'CUS-026',
-    name: 'Eric Mitchell',
-    email: 'e.mitchell@gmail.com',
-    phone: '+237 699889911',
-    description: 'Client fidèle',
-    district: 'Akwa',
-  },
-  {
-    reference: 'CUS-027',
-    name: 'Kimberly Perez',
-    email: 'k.perez@yahoo.com',
-    phone: '+237 677112244',
-    description: 'Nouveau client',
-    district: 'Bonapriso',
-  },
-  {
-    reference: 'CUS-028',
-    name: 'Andrew Roberts',
-    email: 'a.roberts@gmail.com',
-    phone: '+237 655445577',
-    description: 'Client occasionnel',
-    district: 'Nkabang',
-  },
-  {
-    reference: 'CUS-029',
-    name: 'Stephanie Turner',
-    email: 's.turner@hotmail.com',
-    phone: '+237 699778800',
-    description: 'Client régulier',
-    district: 'Deïdo',
-  },
-  {
-    reference: 'CUS-030',
-    name: 'Matthew Phillips',
-    email: 'm.phillips@outlook.com',
-    phone: '+237 677990022',
-    description: 'Client entreprise',
-    district: 'Bonanjo',
-  },
-]
+interface CustomersProps {
+  customers: ThirdParties[]
+}
 
-export default function Customers() {
-  const [openConfirm, setOpenConfirm] = useState(false)
+export default function Customers({ customers }: CustomersProps) {
+  const { delete: destroy, processing } = useForm()
+  const [openConfirm, setOpenConfirm] = useState<boolean>(false)
+  const [openAddModal, setOpenAddModal] = useState<boolean>(false)
+  const [currentCustomer, setCurentCustomers] = useState<ThirdParties | null>()
+  const [customerId, setCustomerId] = useState<string>('')
 
   const columnsMovement: Column<any>[] = [
     {
       Header: 'Réference',
-      accessor: 'reference',
+      accessor: 'clientCode',
       sortable: false,
     },
     {
@@ -277,20 +45,23 @@ export default function Customers() {
       accessor: 'description',
     },
     {
-      Header: 'Quartier',
-      accessor: 'district',
+      Header: 'Adresse',
+      accessor: 'address',
       sortable: false,
     },
     {
       Header: '',
       accessor: '#',
       sortable: false,
-      render: () => (
+      render: (data) => (
         <div className="flex items-center justify-end gap-2 pr-2">
           <Button
             label=""
             color="info"
-            onClick={() => router.visit(`/dashboard/customers/${1}/details`)}
+            onClick={() => {
+              setCurentCustomers(data)
+              setOpenAddModal(true)
+            }}
             icon={
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
@@ -305,7 +76,10 @@ export default function Customers() {
           <Button
             label=""
             color="danger"
-            onClick={() => setOpenConfirm(true)}
+            onClick={() => {
+              setCustomerId(data.id)
+              setOpenConfirm(true)
+            }}
             icon={
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
@@ -322,7 +96,16 @@ export default function Customers() {
     },
   ]
 
-  const handleConfirmDelete = () => {}
+  const handleConfirmDelete = () => {
+    destroy(`/dashboard/customers?q=${customerId}`, {
+      preserveState: true,
+      preserveScroll: true,
+      onSuccess: () => {
+        toast.success('Suppréssion éffectuée...')
+        setOpenConfirm(false)
+      },
+    })
+  }
 
   return (
     <AdminLayout title="Dashboard">
@@ -335,18 +118,32 @@ export default function Customers() {
             </p>
           </div>
           <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-            <Button label={'Nouveau client'} />
+            <Button
+              label={'Nouveau client'}
+              onClick={() => {
+                setCurentCustomers(null)
+                setOpenAddModal(true)
+              }}
+            />
           </div>
         </div>
         <div className="mt-8 flow-root">
-          <DataTable columns={columnsMovement} data={people} itemsPerPage={50} withPaginate />
+          <DataTable columns={columnsMovement} data={customers} itemsPerPage={50} withPaginate />
         </div>
       </div>
-      <ConfirmDialog
-        isOpen={openConfirm}
-        setOpen={() => setOpenConfirm(!openConfirm)}
-        onConfirm={handleConfirmDelete}
+      <CreateCustomer
+        currentCustomer={currentCustomer}
+        openAddModal={openAddModal}
+        handleOpenModlal={() => setOpenAddModal(false)}
       />
+      {customerId && (
+        <ConfirmDialog
+          isOpen={openConfirm}
+          isLoading={processing}
+          setOpen={() => setOpenConfirm(!openConfirm)}
+          onConfirm={handleConfirmDelete}
+        />
+      )}
     </AdminLayout>
   )
 }

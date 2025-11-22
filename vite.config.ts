@@ -10,12 +10,12 @@ export default defineConfig({
     react(),
     adonisjs({ entrypoints: ['inertia/app/app.tsx'], reload: ['resources/views/**/*.edge'] }),
   ],
-  server: {
-    hmr: {
-      host: 'localhost',
-    },
-    // allowedHosts: ['analytics.klarzo.com'],
-  },
+  // server: {
+  //   hmr: {
+  //     host: 'localhost',
+  //   },
+  //   // allowedHosts: ['analytics.klarzo.com'],
+  // },
   /**
    * Define aliases for importing modules from
    * your frontend code

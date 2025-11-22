@@ -3,7 +3,7 @@ import React from 'react'
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string
-  error?: string
+  error?: boolean
   withMargin?: boolean
   block?: boolean
   endIcon?: React.ReactNode
@@ -48,7 +48,7 @@ const Input: React.FC<InputProps> = ({
           <div className="absolute inset-y-0 right-0 pr-3 flex items-center">{endIcon}</div>
         )}
       </div>
-      {error && <p className={`text-sm mt-1 ${errorTextColor}`}>{error}</p>}
+      {error && <p className="text-xs text-red-600 text-red-500">Champ requis.</p>}
     </div>
   )
 }

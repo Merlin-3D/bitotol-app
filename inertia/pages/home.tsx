@@ -1,4 +1,4 @@
-import { router, useForm, usePage } from '@inertiajs/react'
+import { Head, router, useForm, usePage } from '@inertiajs/react'
 import { isArray, isEmpty } from 'lodash'
 import Alert from '~/components/alert'
 import Input from '~/components/input'
@@ -14,15 +14,15 @@ export default function Home() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // post('/login', {
-    //   preserveScroll: true,
-    // })
-    router.visit('/dashboard/home')
+    post('/login', {
+      preserveScroll: true,
+    })
   }
+
 
   return (
     <>
-      {/* <Head title="Connexion Admin" /> */}
+      <Head title="Login" />
 
       <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center px-6 py-12">
         {/* Logo et titre */}
