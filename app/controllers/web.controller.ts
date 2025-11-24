@@ -141,4 +141,23 @@ export default class WebController {
       { title: 'Produit' }
     )
   }
+
+  async stocks({ inertia }: HttpContext) {
+    const products = await getProductsList()
+
+    return inertia.render('stocks/index', { products }, { title: 'Produits' })
+  }
+
+  async movements({ inertia }: HttpContext) {
+    const movements = await Movement.query()
+      .orderBy('movements.updated_at', 'desc')
+      .innerJoin('stocks', 'movements.stock_id', 'stocks.id')
+      //@ts-ignore
+      .preload('stock', (stockQuery) => {
+        //@ts-ignore
+        stockQuery.preload('product')
+      })
+
+    return inertia.render('movement/index', { movements }, { title: 'Movement' })
+  }
 }
