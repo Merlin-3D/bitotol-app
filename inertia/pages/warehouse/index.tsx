@@ -79,11 +79,11 @@ export default function Warehouse({ warehouses }: WarehouseProps) {
         <div className="flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
             <BoxOpenIcon className="h-6 w-6" />
-            <span>Entrepôts</span>
+            <span>Emplacement</span>
           </div>
           <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
             <Button
-              label={'Nouvel entrepôts'}
+              label={'Nouvel emplacement'}
               onClick={() => {
                 setOpenAddModal(true)
               }}

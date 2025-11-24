@@ -28,7 +28,7 @@ const navItems = [
   },
   {
     name: 'Produits | Services',
-    href: '#',
+    href: '/dashboard/products',
     icon: ProductsIcon,
   },
   // {
@@ -36,18 +36,19 @@ const navItems = [
   //   href: '#',
   //   icon: CategoryIcon,
   // },
-  {
-    name: 'Stocks',
-    href: '#',
-    icon: StockIcon,
-  },
+
   {
     name: 'Facturations',
     href: '#',
     icon: InvoiceIcon,
   },
   {
-    name: 'Entrepôts',
+    name: 'Stocks',
+    href: '#',
+    icon: StockIcon,
+  },
+  {
+    name: 'Emplacement',
     href: '/dashboard/warehouses',
     icon: WarehouseIcon,
   },

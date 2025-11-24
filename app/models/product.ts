@@ -1,9 +1,10 @@
-import { BaseModel, belongsTo, column, hasMany } from '@adonisjs/lucid/orm'
+import { BaseModel, beforeSave, belongsTo, column, hasMany } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import Warehouses from './warehouses.js'
 import User from './user.js'
 import Stock from './stock.js'
+import { ProductType } from './enum/product_enum.js'
 
 export default class Product extends BaseModel {
   @column({ isPrimary: true })
@@ -36,6 +37,12 @@ export default class Product extends BaseModel {
   @column()
   declare sellingPrice: number | null
 
+  @column()
+  declare expiredAt: string | null
+
+  @column()
+  declare type: ProductType | null
+
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
 
@@ -52,4 +59,20 @@ export default class Product extends BaseModel {
 
   @hasMany(() => Stock)
   declare stock: HasMany<typeof Stock>
+
+  @beforeSave()
+  static async generateClientCode(product: Product) {
+    if (!product.reference) {
+      const currentDate = new Date()
+      const year = currentDate.getFullYear().toString().slice(-2) // les deux derniers chiffres de l'année
+      const month = (currentDate.getMonth() + 1).toString().padStart(2, '0') // mois avec deux chiffres
+
+      const seconds = currentDate.getMilliseconds().toString().padStart(4, '0')
+      const existingCustomerCount = seconds
+
+      const customerNumber = existingCustomerCount.toString().padStart(2, '0')
+
+      product.reference = `${product.type === 'P' ? 'P' : 'S'}/${year}${month}B${customerNumber}`
+    }
+  }
 }

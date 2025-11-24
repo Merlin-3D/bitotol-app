@@ -14,6 +14,7 @@ export interface ProductRequest {
   active: boolean
   limitStockAlert?: number | string | null
   sellingPrice?: number | string | null
+  optimalStock?: number | string | null
 }
 
 export interface ProductResponse extends ProductRequest {
@@ -21,6 +22,8 @@ export interface ProductResponse extends ProductRequest {
   warehouse?: WarehaouseResponse
   user?: User
   stocks?: StockResponse[]
+  type: string
+  expiredAt?: string | null
   createdAt?: string
   updatedAt?: string
 }

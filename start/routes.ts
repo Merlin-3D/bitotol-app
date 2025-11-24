@@ -1,6 +1,8 @@
 const AuthController = () => import('#controllers/auth_controller')
 import router from '@adonisjs/core/services/router'
 import { middleware } from './kernel.js'
+const StocksController = () => import('#controllers/stocks_controller')
+const ProductsController = () => import('#controllers/products_controller')
 const WarehousesController = () => import('#controllers/warehouses_controller')
 const ThirdPartiesController = () => import('#controllers/third_parties_controller')
 const WebController = () => import('#controllers/web.controller')
@@ -25,6 +27,10 @@ router
     router.get('/warehouses/:id', [WebController, 'warehousesDetails'])
     router.put('/warehouses/:id', [WarehousesController, 'update'])
     router.delete('/warehouses/:id', [WarehousesController, 'destroy'])
+    router.get('/products', [WebController, 'products'])
+    router.post('/products', [ProductsController, 'store'])
+    router.get('/products/:id', [WebController, 'productsDetails'])
+    router.post('/products/:id', [StocksController, 'store'])
 
     // Logout
     router.post('/logout', [AuthController, 'logout'])
