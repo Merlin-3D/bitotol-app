@@ -41,6 +41,7 @@ export default function CorrectStockDialog({
     value: string
     name: string
   } | null>()
+  
 
   const [warehaouse, setWarehaouse] = useState<WarehaouseResponse | null>(
     !isNil(product?.warehouse) ? product.warehouse : null

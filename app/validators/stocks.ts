@@ -17,9 +17,9 @@ export const productStore = vine.compile(
     type: vine.enum(ProductType).optional(),
     description: vine.string().nullable().optional(),
     warehousesId: vine.string().nullable().optional(),
-    limitStockAlert: vine.string().nullable().optional(),
-    optimalStock: vine.string().nullable().optional(),
-    sellingPrice: vine.string().nullable().optional(),
+    limitStockAlert: vine.number().nullable().optional(),
+    optimalStock: vine.number().nullable().optional(),
+    sellingPrice: vine.number().nullable().optional(),
     expiredAt: vine.string().nullable().optional(),
   })
 )

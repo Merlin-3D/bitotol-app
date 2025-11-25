@@ -1,5 +1,7 @@
+import { ProductType } from '#models/enum/product_enum'
 import { Link } from '@inertiajs/react'
-import { ProductIcon } from '~/components/icons'
+import { isNil } from 'lodash'
+import { ProductIcon, ServiceIcon } from '~/components/icons'
 import { formatDateTime } from '~/pages/utils/common'
 import { ProductResponse } from '~/pages/utils/entities'
 
@@ -11,8 +13,12 @@ export default function ProductHeader({ product }: ProductHeaderProps) {
     <div className="flex flex-col">
       <div className="flex flex-row items-start justify-between pb-2">
         <div className="flex items-start gap-4">
-          <div className="shadow- rounded-lg relative">
-            <ProductIcon className="rounded w-12 h-12" />
+          <div className="shadow-lg rounded-lg relative p-4">
+            {!isNil(product.type) && product.type === ProductType.PRODUCT ? (
+              <ProductIcon className="rounded w-12 h-12" />
+            ) : (
+              <ServiceIcon className="rounded w-12 h-12" />
+            )}
           </div>
           <div className="flex flex-col justify-between gap-16">
             <div className="flex flex-col">

@@ -23,7 +23,7 @@ export default function ProductsDetails({
   const [isPending, startTransition] = useTransition()
 
   const tabContentList = (): { [key: string]: React.ReactNode } => ({
-    infos: <ProductInfos product={product} movementsProducts={movements} />,
+    infos: <ProductInfos warehouses={warehouses} product={product} movementsProducts={movements} />,
     stock: (
       <ProductStock
         warehouses={warehouses}

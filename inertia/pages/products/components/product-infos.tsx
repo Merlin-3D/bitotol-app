@@ -1,9 +1,9 @@
 import ProductHeader from './product-header'
-import _, { isEmpty, isNil } from 'lodash'
+import _, { isNil } from 'lodash'
 import { useState } from 'react'
 import classNames from 'classnames'
 import { toast } from 'react-toastify'
-import { MovementResponse, ProductResponse } from '~/pages/utils/entities'
+import { MovementResponse, ProductResponse, WarehaouseResponse } from '~/pages/utils/entities'
 import { Column, DataTable } from '~/components/data-table'
 import CustomerIcon from '~/components/icons/customers.icon'
 import {
@@ -13,23 +13,34 @@ import {
   getExpirationStyle,
 } from '~/pages/utils/common'
 import { ProductType } from '#models/enum/product_enum'
-import { AlertTwotone, PackageMovementIcon, ProductIcon, ServiceIcon } from '~/components/icons'
+import {
+  AlertTwotone,
+  EditIcon,
+  PackageMovementIcon,
+  ProductIcon,
+  ServiceIcon,
+  TrashIcon,
+} from '~/components/icons'
 import Badge from '~/components/badge'
 import { ConfirmDialog } from '~/components/confirm-dialog'
+import { useForm } from '@inertiajs/react'
+import Button from '~/components/button'
+import CreateProduct from './create-product'
 
 interface ProductInfosProps {
   product: ProductResponse
+  warehouses: WarehaouseResponse[]
   movementsProducts: MovementResponse[]
 }
 
-export default function ProductInfos({ product, movementsProducts }: ProductInfosProps) {
+export default function ProductInfos({
+  product,
+  warehouses,
+  movementsProducts,
+}: ProductInfosProps) {
+  const { delete: destroy, processing } = useForm()
   const [openModal, setOpenModal] = useState(false)
   const [openConfirm, setOpenConfirm] = useState(false)
-  const [openClone, setOpenClone] = useState(false)
-
-  const [refProduct, setRefProduct] = useState<string>('')
-  const [cloneAllData, setCloneAllData] = useState(false)
-  const [cloneCategory, setCloneCategory] = useState(false)
 
   const columns: Column<MovementResponse>[] = [
     {
@@ -85,18 +96,14 @@ export default function ProductInfos({ product, movementsProducts }: ProductInfo
   ]
 
   const handleConfirm = async () => {
-    // await productStore.deleteProduct(productStore.product.id as string)
-    // if (!isEmpty(productStore.successMessage)) {
-    //   toast.success(productStore.successMessage)
-    //   setOpenConfirm(false)
-    //   if (type === ProductType.PRODUCT) {
-    //     router.push(`/product?mainmenu=list-products`)
-    //   } else {
-    //     router.push(`/product?mainmenu=list-services`)
-    //   }
-    // } else {
-    //   toast.error(productStore.errorCreateMessage)
-    // }
+    destroy(`/dashboard/products/${product.id}`, {
+      preserveState: true,
+      preserveScroll: true,
+      onSuccess: () => {
+        toast.success('Suppréssion éffectuée...')
+        setOpenConfirm(false)
+      },
+    })
   }
 
   const daysUntilExpiration = getDaysUntilExpiration(product.expiredAt)
@@ -227,7 +234,23 @@ export default function ProductInfos({ product, movementsProducts }: ProductInfo
           </div>
         </div>
       </div>
+      <div className="flex flex-col justify-between gap-8">
+        <div className="flex flex-row justify-end gap-2 items-center">
+          <Button
+            color="info"
+            label="Modifier"
+            onClick={() => setOpenModal(true)}
+            icon={<EditIcon className="h-4 w-4 text-white" />}
+          />
 
+          <Button
+            color="danger"
+            label="Supprimer"
+            onClick={() => setOpenConfirm(true)}
+            icon={<TrashIcon className="h-4 w-4 text-white" />}
+          />
+        </div>
+      </div>
       {product.type === ProductType.PRODUCT && (
         <div className="flex flex-col gap-2">
           <h1 className="flex items-center gap-2">
@@ -244,26 +267,19 @@ export default function ProductInfos({ product, movementsProducts }: ProductInfo
         </div>
       )}
 
-      {/* <DialogModal
-        title={type === ProductType.PRODUCT ? 'Modifier le produit' : 'Modifier le service'}
-        open={openModal}
-        setOpen={() => setOpenModal(!openModal)}
-        size="5xl"
-        color={'Goldrush'}
-      >
-        <ProductForm
-          productInfos={productStore.product}
-          setOpen={() => setOpenModal(!openModal)}
-          type={type}
-        />
-      </DialogModal> */}
+      <CreateProduct
+        warehouses={warehouses}
+        currentProduct={product}
+        openAddModal={openModal}
+        handleOpenModlal={() => setOpenModal(false)}
+      />
 
-      {/* <ConfirmDialog
+      <ConfirmDialog
         isOpen={openConfirm}
-        isLoading={productStore.createdLoading}
+        isLoading={processing}
         setOpen={() => setOpenConfirm(!openConfirm)}
         onConfirm={handleConfirm}
-      /> */}
+      />
     </div>
   )
 }

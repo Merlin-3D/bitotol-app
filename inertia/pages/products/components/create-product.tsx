@@ -2,7 +2,7 @@ import { ProductType } from '#models/enum/product_enum'
 import { useForm } from '@inertiajs/react'
 import classNames from 'classnames'
 import { isEmpty, isNil } from 'lodash'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'react-toastify'
 import AutoComplete from '~/components/auto-complete'
 import DialogModal from '~/components/dialog-modal'
@@ -50,6 +50,23 @@ export default function CreateProduct({
 
   const [warehouse, setWarehouse] = useState<WarehaouseResponse>()
 
+  useEffect(() => {
+    const loadData = () => {
+      setData('name', currentProduct?.name!)
+      setData('warehousesId', currentProduct?.warehousesId!)
+      setData('active', currentProduct?.active!)
+      setData('type', currentProduct?.type!)
+      setData('limitStockAlert', currentProduct?.limitStockAlert!)
+      setData('optimalStock', currentProduct?.optimalStock!)
+      setData('sellingPrice', currentProduct?.sellingPrice!)
+      setData('expiredAt', currentProduct?.expiredAt!)
+      setData('description', currentProduct?.description!)
+      setType(productType.find((item) => item.value === currentProduct?.type))
+      setWarehouse(warehouses.find((item) => item.id === currentProduct?.warehousesId))
+    }
+    loadData()
+  }, [currentProduct])
+
   const [fieldErrorProduct, setFieldErrorProduct] = useState<ErrorFieldsProduct>()
 
   const fieldErrorProductValidate =
@@ -57,7 +74,7 @@ export default function CreateProduct({
       ? {
           type: data.type,
           name: data.name,
-          sellingPrice: data.sellingPrice,
+          sellingPrice: `${data.sellingPrice}`,
         }
       : {
           type: data.type,
@@ -130,7 +147,11 @@ export default function CreateProduct({
             value: string
             name: string
           }>
-            data={productType}
+            data={
+              currentProduct
+                ? productType.filter((item) => item.value === currentProduct.type)
+                : productType
+            }
             getLabel={(value) => value!.name}
             getKey={(value) => value!.value}
             label="Selectionner..."

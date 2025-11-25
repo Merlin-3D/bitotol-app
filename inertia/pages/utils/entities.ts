@@ -12,9 +12,9 @@ export interface ProductRequest {
   description?: string
   warehousesId?: string | null
   active: boolean
-  limitStockAlert?: number | string | null
-  sellingPrice?: number | string | null
-  optimalStock?: number | string | null
+  limitStockAlert?: any
+  sellingPrice?: any
+  optimalStock?: any
 }
 
 export interface ProductResponse extends ProductRequest {

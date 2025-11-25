@@ -31,6 +31,8 @@ router
     router.post('/products', [ProductsController, 'store'])
     router.get('/products/:id', [WebController, 'productsDetails'])
     router.post('/products/:id', [StocksController, 'store'])
+    router.put('/products/:id', [ProductsController, 'update'])
+    router.delete('/products/:id', [ProductsController, 'destroy'])
     router.get('/stocks', [WebController, 'stocks'])
     router.get('/movements', [WebController, 'movements'])
 
