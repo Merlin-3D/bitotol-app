@@ -9,6 +9,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import _ from 'lodash'
 import { DateTime } from 'luxon'
 import PDFDocument from 'pdfkit'
+import { BillingStatus } from '#models/enum/product_enum'
 
 export default class WebController {
   async login({ inertia }: HttpContext) {
@@ -22,8 +23,10 @@ export default class WebController {
     const totalBillings = await Billings.query().count('* as total')
     const totalWarehouses = await Warehouses.query().count('* as total')
 
-    // Calculer le montant total des factures
+    // Calculer le montant total des factures (exclure Draft et Abandoned)
     const billings = await Billings.query()
+      .whereNot('status', BillingStatus.DRAFT)
+      .whereNot('status', BillingStatus.ABANDONED)
     const totalBillingAmount = billings.reduce((sum, billing) => {
       const amount = billing.amountIncludingVat ? Number.parseFloat(billing.amountIncludingVat) : 0
       return sum + amount

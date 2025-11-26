@@ -398,7 +398,7 @@ export default function BillingsSupplierInfo({
             <span className="text-slate-500 text-sm">Description</span>
             <span className="text-slate-500 text-sm">Date facturation</span>
             <span className="text-slate-500 text-sm">Devise</span>{' '}
-            <span className="text-slate-500 text-sm">Document de la facture:</span>
+            <span className="text-slate-500 text-sm">Document de la facture</span>
           </div>
           <div className="col-span-4 grid grid-cols-1 gap-2">
             <div className="flex items-start">
@@ -423,15 +423,8 @@ export default function BillingsSupplierInfo({
             <hr />
             <div className="flex items-center justify-start gap-4">
               <p className="text-sm text-left">#</p>
-              {billing.status !== BillingStatus.DRAFT &&
-                billing.status !== BillingStatus.VALIDATE && (
-                  <Button
-                    label="Générer"
-                    onClick={() => handleDowloadDoc()}
-                    color="warning"
-                    size="xs"
-                  />
-                )}
+            
+            
             </div>
 
             <hr />
