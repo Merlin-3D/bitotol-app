@@ -10,6 +10,7 @@ import Stock from '#models/stock'
 import Product from '#models/product'
 import Warehouses from '#models/warehouses'
 import InventoryIcon from '~/components/icons/inventory.icon'
+import { DownloadIcon } from '~/components/icons'
 
 interface InventoryItem {
   id: string
@@ -81,6 +82,17 @@ export default function Inventory({ inventory, warehouses }: InventoryProps) {
 
   const hasActiveFilters = () => {
     return Object.values(filters).some(value => value !== null && value !== '')
+  }
+
+  const downloadPdf = () => {
+    const params: Record<string, string> = {}
+    
+    if (filters.dateFrom) params.dateFrom = filters.dateFrom
+    if (filters.dateTo) params.dateTo = filters.dateTo
+    if (filters.warehouseId) params.warehouseId = filters.warehouseId
+
+    const queryString = new URLSearchParams(params).toString()
+    window.open(`/dashboard/inventory/export-pdf?${queryString}`, '_blank')
   }
 
   const columns: Column<InventoryItem>[] = [
@@ -166,7 +178,7 @@ export default function Inventory({ inventory, warehouses }: InventoryProps) {
 
   return (
     <AdminLayout title="Inventaire">
-      <div className="flex flex-col gap-3 bg-white px-4 h-full py-6 rounded-2xl">
+      <div className="flex flex-col gap-3 bg-white px-4 h-full rounded-2xl">
         <div className="flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
             <InventoryIcon className="h-6 w-6" />
@@ -177,6 +189,12 @@ export default function Inventory({ inventory, warehouses }: InventoryProps) {
               label={showFilters ? 'Masquer les filtres' : 'Afficher les filtres'}
               color="secondary"
               onClick={() => setShowFilters(!showFilters)}
+            />
+            <Button
+              label="Télécharger PDF"
+              color="info"
+              onClick={downloadPdf}
+              icon={<DownloadIcon className="h-4 w-4" />}
             />
           </div>
         </div>

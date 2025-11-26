@@ -7,6 +7,7 @@ import { useState } from 'react'
 import CreateCustomer from './components/create-customer'
 import ThirdParties from '#models/third_parties'
 import { toast } from 'react-toastify'
+import CustomerIcon from '~/components/icons/customers.icon'
 
 interface CustomersProps {
   customers: ThirdParties[]
@@ -109,13 +110,11 @@ export default function Customers({ customers }: CustomersProps) {
 
   return (
     <AdminLayout title="Dashboard">
-      <div className="px-4 sm:px-6 lg:px-8">
-        <div className="sm:flex sm:items-center">
-          <div className="sm:flex-auto">
-            <h1 className="text-base font-semibold text-gray-900 ">Clients</h1>
-            <p className="mt-2 text-sm text-gray-700">
-              A list of all the users in your account including their name, title, email and role.
-            </p>
+      <div className="flex flex-col gap-3 bg-white px-4 h-full py-6 rounded-2xl">
+        <div className="flex flex-row items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CustomerIcon className="h-6 w-6" />
+            <span>Clients</span>
           </div>
           <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
             <Button
@@ -127,9 +126,8 @@ export default function Customers({ customers }: CustomersProps) {
             />
           </div>
         </div>
-        <div className="mt-8 flow-root">
-          <DataTable columns={columnsMovement} data={customers} itemsPerPage={50} withPaginate />
-        </div>
+        <hr />
+        <DataTable columns={columnsMovement} data={customers} itemsPerPage={50} withPaginate />
       </div>
       <CreateCustomer
         currentCustomer={currentCustomer}

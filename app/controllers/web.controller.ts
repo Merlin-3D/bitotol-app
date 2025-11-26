@@ -7,6 +7,8 @@ import Warehouses from '#models/warehouses'
 import { getBillingDetails, getProductsList, getWarehouseList } from '#services/common'
 import type { HttpContext } from '@adonisjs/core/http'
 import _ from 'lodash'
+import { DateTime } from 'luxon'
+import PDFDocument from 'pdfkit'
 
 export default class WebController {
   async login({ inertia }: HttpContext) {
@@ -14,7 +16,80 @@ export default class WebController {
   }
 
   async dashboard({ inertia }: HttpContext) {
-    return inertia.render('dashboard/home', {}, { title: 'Dashboard' })
+    // Statistiques générales
+    const totalProducts = await Product.query().count('* as total')
+    const totalCustomers = await ThirdParties.query().count('* as total')
+    const totalBillings = await Billings.query().count('* as total')
+    const totalWarehouses = await Warehouses.query().count('* as total')
+
+    // Calculer le montant total des factures
+    const billings = await Billings.query()
+    const totalBillingAmount = billings.reduce((sum, billing) => {
+      const amount = billing.amountIncludingVat ? Number.parseFloat(billing.amountIncludingVat) : 0
+      return sum + amount
+    }, 0)
+
+    // Produits en rupture de stock
+    const allProducts = await getProductsList()
+    const outOfStockProducts = allProducts.filter((product) => {
+      if (product.type !== 'P') return false // Seulement les produits, pas les services
+      const totalQuantity = _.sumBy(product.stocks, 'virtualQuantity')
+      const limitStock = product.limitStockAlert ? product.limitStockAlert : 0
+      return totalQuantity <= limitStock && totalQuantity > 0
+    })
+
+    // Produits avec stock faible (inférieur à la limite d'alerte)
+    const lowStockProducts = allProducts.filter((product) => {
+      if (product.type !== 'P') return false
+      const totalQuantity = _.sumBy(product.stocks, 'virtualQuantity')
+      const limitStock = product.limitStockAlert ? product.limitStockAlert : 0
+      return totalQuantity > 0 && totalQuantity <= limitStock * 1.2 && totalQuantity > limitStock
+    })
+
+    // Produits expirés ou proches de l'expiration
+    const today = DateTime.now()
+    const expiredProducts = allProducts.filter((product) => {
+      if (!product.expiredAt) return false
+      const expirationDate = DateTime.fromISO(product.expiredAt)
+      return expirationDate < today
+    })
+
+    const expiringSoonProducts = allProducts.filter((product) => {
+      if (!product.expiredAt) return false
+      const expirationDate = DateTime.fromISO(product.expiredAt)
+      const daysUntilExpiration = expirationDate.diff(today, 'days').days
+      return daysUntilExpiration >= 0 && daysUntilExpiration <= 30
+    })
+
+    // Factures récentes (dernières 30 jours)
+    const thirtyDaysAgo = DateTime.now().minus({ days: 30 })
+    const recentBillings = await Billings.query()
+      .where('created_at', '>=', thirtyDaysAgo.toISO()!)
+      .orderBy('created_at', 'desc')
+      .limit(10)
+      //@ts-ignore
+      .preload('thirdParties')
+
+    return inertia.render(
+      'dashboard/home',
+      {
+        stats: {
+          totalProducts: totalProducts[0].$extras.total,
+          totalCustomers: totalCustomers[0].$extras.total,
+          totalBillings: totalBillings[0].$extras.total,
+          totalWarehouses: totalWarehouses[0].$extras.total,
+          totalBillingAmount,
+        },
+        alerts: {
+          outOfStockProducts: outOfStockProducts.slice(0, 10),
+          lowStockProducts: lowStockProducts.slice(0, 10),
+          expiredProducts: expiredProducts.slice(0, 10),
+          expiringSoonProducts: expiringSoonProducts.slice(0, 10),
+        },
+        recentBillings,
+      },
+      { title: 'Dashboard' }
+    )
   }
 
   async customers({ inertia }: HttpContext) {
@@ -309,5 +384,166 @@ export default class WebController {
     const warehouses = await getWarehouseList()
 
     return inertia.render('inventory/index', { inventory, warehouses }, { title: 'Inventaire' })
+  }
+
+  async exportInventoryPdf({ request, response }: HttpContext) {
+    try {
+      const query = Stock.query()
+        //@ts-ignore
+        .preload('product')
+        //@ts-ignore
+        .preload('warehouse')
+
+      // Filtres
+      const dateFrom = request.qs().dateFrom
+      const dateTo = request.qs().dateTo
+      const warehouseId = request.qs().warehouseId
+
+      if (dateFrom) {
+        query.where('created_at', '>=', dateFrom)
+      }
+
+      if (dateTo) {
+        query.where('created_at', '<=', dateTo)
+      }
+
+      if (warehouseId) {
+        query.where('warehousesId', warehouseId)
+      }
+
+      const stocks = await query.orderBy('created_at', 'desc')
+
+      // Récupérer le nom de l'emplacement si un filtre est appliqué
+      let warehouseName = null
+      if (warehouseId) {
+        const warehouse = await Warehouses.find(warehouseId)
+        if (warehouse) warehouseName = warehouse.name
+      }
+
+      // Créer le document PDF avec Promise
+      return new Promise<void>((resolve, reject) => {
+        const doc = new PDFDocument({ margin: 50 })
+        const buffers: Buffer[] = []
+
+        doc.on('data', (chunk: Buffer) => buffers.push(chunk))
+        doc.on('end', () => {
+          try {
+            const pdfData = Buffer.concat(buffers)
+            response.header('Content-Type', 'application/pdf')
+            response.header(
+              'Content-Disposition',
+              `attachment; filename="inventaire_${DateTime.now().toFormat('yyyy-MM-dd')}.pdf"`
+            )
+            response.send(pdfData)
+            resolve()
+          } catch (error) {
+            reject(error)
+          }
+        })
+        doc.on('error', reject)
+
+        // En-tête du document
+        doc.fontSize(20).text("Fiche d'Inventaire", { align: 'center' })
+        doc.moveDown()
+
+        // Informations de filtrage
+        const filterInfo: string[] = []
+        if (warehouseName) filterInfo.push(`Emplacement: ${warehouseName}`)
+        if (dateFrom) filterInfo.push(`Date début: ${dateFrom}`)
+        if (dateTo) filterInfo.push(`Date fin: ${dateTo}`)
+
+        if (filterInfo.length > 0) {
+          doc.fontSize(10).text(`Filtres appliqués: ${filterInfo.join(', ')}`, { align: 'left' })
+          doc.moveDown()
+        }
+
+        doc.fontSize(10).text(`Date d'export: ${DateTime.now().toFormat('dd/MM/yyyy HH:mm')}`, {
+          align: 'left',
+        })
+        doc.fontSize(10).text(`Total: ${stocks.length} article(s)`, { align: 'left' })
+        doc.moveDown(2)
+
+        // Calculer les totaux
+        const totalValue = stocks.reduce(
+          (sum, stock) => sum + stock.physicalQuantity * stock.unitPurchasePrice,
+          0
+        )
+        const totalPhysicalQuantity = stocks.reduce((sum, stock) => sum + stock.physicalQuantity, 0)
+
+        // Résumé
+        doc.fontSize(12).font('Helvetica-Bold').text('Résumé', { align: 'left' })
+        doc.font('Helvetica').fontSize(10)
+        doc.text(`Nombre d'articles: ${stocks.length}`, { align: 'left' })
+        doc.text(`Quantité totale physique: ${totalPhysicalQuantity}`, { align: 'left' })
+        doc.text(`Valeur totale: ${totalValue} FCFA`, { align: 'left' })
+        doc.moveDown(2)
+
+        // Tableau de l'inventaire
+        let yPosition = doc.y
+        const startX = 50
+        const colWidths = [100, 100, 80, 80, 80, 100]
+        const headers = [
+          'Produit',
+          'Emplacement',
+          'Qté Physique',
+          'Qté Virtuelle',
+          'Prix unit.',
+          'Totale',
+        ]
+
+        // En-têtes du tableau
+        doc.fontSize(10).font('Helvetica-Bold')
+        let xPosition = startX
+        headers.forEach((header, index) => {
+          doc.text(header, xPosition, yPosition, { width: colWidths[index], align: 'left' })
+          xPosition += colWidths[index] + 10
+        })
+        yPosition += 20
+
+        // Ligne de séparation
+        doc.moveTo(startX, yPosition).lineTo(550, yPosition).stroke()
+        yPosition += 10
+
+        // Données de l'inventaire
+        doc.font('Helvetica')
+        for (const stock of stocks) {
+          if (yPosition > 700) {
+            // Nouvelle page si nécessaire
+            doc.addPage()
+            yPosition = 50
+          }
+
+          const totalValueItem = stock.physicalQuantity * stock.unitPurchasePrice
+
+          const rowData = [
+            stock.product?.name || 'N/A',
+            stock.warehouse?.name || 'N/A',
+            stock.physicalQuantity.toString(),
+            stock.virtualQuantity.toString(),
+            `${stock.unitPurchasePrice} FCFA`,
+            `${totalValueItem} FCFA`,
+          ]
+
+          xPosition = startX
+          rowData.forEach((data, index) => {
+            doc.fontSize(9).text(data || 'N/A', xPosition, yPosition, {
+              width: colWidths[index],
+              align: 'left',
+            })
+            xPosition += colWidths[index] + 10
+          })
+          yPosition += 20
+        }
+
+        // Finaliser le PDF
+        doc.end()
+      })
+    } catch (error) {
+      console.log(error)
+      return response.status(500).send({
+        code: 'EXPORT_ERROR',
+        message: 'Erreur lors de la génération du PDF',
+      })
+    }
   }
 }

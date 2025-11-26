@@ -49,7 +49,6 @@ export default function CreateProduct({
   }>()
 
   const [warehouse, setWarehouse] = useState<WarehaouseResponse>()
-
   useEffect(() => {
     const loadData = () => {
       setData('name', currentProduct?.name!)
@@ -79,7 +78,7 @@ export default function CreateProduct({
       : {
           type: data.type,
           name: data.name,
-          sellingPrice: data.sellingPrice,
+          sellingPrice: `${data.sellingPrice}`,
           warehouse: warehouse?.id,
         }
 

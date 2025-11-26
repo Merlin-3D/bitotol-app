@@ -37,6 +37,7 @@ router
     router.get('/stocks', [WebController, 'stocks'])
     router.get('/movements', [WebController, 'movements'])
     router.get('/inventory', [WebController, 'inventory'])
+    router.get('/inventory/export-pdf', [WebController, 'exportInventoryPdf'])
     router.get('/billings', [WebController, 'billings'])
     router.get('/billings/export-pdf', [BillingsController, 'exportPdf'])
     router.post('/billings', [BillingsController, 'store'])
