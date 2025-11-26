@@ -92,8 +92,23 @@ export default class WebController {
     )
   }
 
-  async customers({ inertia }: HttpContext) {
-    const customers = await ThirdParties.query().orderBy('created_at', 'desc')
+  async customers({ inertia, request }: HttpContext) {
+    const query = ThirdParties.query()
+
+    // Filtre de recherche
+    const search = request.qs().search
+
+    if (search) {
+      query.where((queryData) => {
+        queryData
+          .where('name', 'ilike', `%${search}%`)
+          .orWhere('client_code', 'ilike', `%${search}%`)
+          .orWhere('email', 'ilike', `%${search}%`)
+          .orWhere('phone', 'ilike', `%${search}%`)
+      })
+    }
+
+    const customers = await query.orderBy('created_at', 'desc')
     return inertia.render('customers/index', { customers }, { title: 'Clients' })
   }
 
