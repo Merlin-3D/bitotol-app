@@ -1,11 +1,11 @@
-import { EyeIcon, InvoiceIcon } from '~/components/icons'
+import { EyeIcon, InvoiceIcon, DownloadIcon } from '~/components/icons'
 import AdminLayout from '../layouts/layout'
 import { BillingResponse } from '../utils/entities'
 import Button from '~/components/button'
 import { Column, DataTable } from '~/components/data-table'
 import { useState, useEffect } from 'react'
 import { Link, router } from '@inertiajs/react'
-import { billingStatus, formatDateTime, billingType } from '../utils/common'
+import { billingStatus, formatDateTime, billingType, formatNumber } from '../utils/common'
 import Badge from '~/components/badge'
 import CreateInvoice from './components/create-billing'
 import ThirdParties from '#models/third_parties'
@@ -56,7 +56,7 @@ export default function Billings({ customers, billings }: BillingsProps) {
 
   const applyFilters = () => {
     const params: Record<string, string> = {}
-    
+
     if (filters.status) params.status = filters.status
     if (filters.customerId) params.customerId = filters.customerId
     if (filters.type) params.type = filters.type
@@ -82,14 +82,33 @@ export default function Billings({ customers, billings }: BillingsProps) {
       amountMax: null,
     }
     setFilters(emptyFilters)
-    router.get('/dashboard/billings', {}, {
-      preserveState: true,
-      preserveScroll: true,
-    })
+    router.get(
+      '/dashboard/billings',
+      {},
+      {
+        preserveState: true,
+        preserveScroll: true,
+      }
+    )
   }
 
   const hasActiveFilters = () => {
-    return Object.values(filters).some(value => value !== null && value !== '')
+    return Object.values(filters).some((value) => value !== null && value !== '')
+  }
+
+  const downloadPdf = () => {
+    const params: Record<string, string> = {}
+
+    if (filters.status) params.status = filters.status
+    if (filters.customerId) params.customerId = filters.customerId
+    if (filters.type) params.type = filters.type
+    if (filters.dateFrom) params.dateFrom = filters.dateFrom
+    if (filters.dateTo) params.dateTo = filters.dateTo
+    if (filters.amountMin) params.amountMin = filters.amountMin
+    if (filters.amountMax) params.amountMax = filters.amountMax
+
+    const queryString = new URLSearchParams(params).toString()
+    window.open(`/dashboard/billings/export-pdf?${queryString}`, '_blank')
   }
   const columns: Column<BillingResponse>[] = [
     {
@@ -122,7 +141,7 @@ export default function Billings({ customers, billings }: BillingsProps) {
       sortable: false,
       render: (data) => (
         <div className="text-right">
-          <span>{`${data.amountIncludingVat} FCFA`}</span>
+          <span>{`${formatNumber(Number(data.amountIncludingVat))} FCFA`}</span>
         </div>
       ),
     },
@@ -177,6 +196,12 @@ export default function Billings({ customers, billings }: BillingsProps) {
               color="secondary"
               onClick={() => setShowFilters(!showFilters)}
             />
+            <Button
+              label="Télécharger PDF"
+              color="info"
+              onClick={downloadPdf}
+              icon={<DownloadIcon className="h-4 w-4" />}
+            />
             <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
               <Button
                 label={'Nouvelle facture'}
@@ -188,7 +213,7 @@ export default function Billings({ customers, billings }: BillingsProps) {
           </div>
         </div>
         <hr />
-        
+
         {showFilters && (
           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -197,7 +222,7 @@ export default function Billings({ customers, billings }: BillingsProps) {
                 <label className="block text-sm font-medium mb-1">Statut</label>
                 <SelectMenu
                   label="Sélectionner un statut"
-                  selected={billingStatus.find(s => s.status === filters.status) || null}
+                  selected={billingStatus.find((s) => s.status === filters.status) || null}
                   data={billingStatus}
                   getLabel={(item) => item?.name || ''}
                   getKey={(item) => item?.status || ''}
@@ -210,7 +235,7 @@ export default function Billings({ customers, billings }: BillingsProps) {
                 <label className="block text-sm font-medium mb-1">Client</label>
                 <SelectMenu
                   label="Sélectionner un client"
-                  selected={customers.find(c => c.id === filters.customerId) || null}
+                  selected={customers.find((c) => c.id === filters.customerId) || null}
                   data={customers}
                   getLabel={(item) => item?.name || ''}
                   getKey={(item) => item?.id || ''}
@@ -223,7 +248,7 @@ export default function Billings({ customers, billings }: BillingsProps) {
                 <label className="block text-sm font-medium mb-1">Type de facture</label>
                 <SelectMenu
                   label="Sélectionner un type"
-                  selected={billingType.find(t => t.value === filters.type) || null}
+                  selected={billingType.find((t) => t.value === filters.type) || null}
                   data={billingType}
                   getLabel={(item) => item?.name || ''}
                   getKey={(item) => item?.value || ''}
@@ -275,16 +300,9 @@ export default function Billings({ customers, billings }: BillingsProps) {
             </div>
 
             <div className="flex items-center gap-2 mt-4">
-              <Button
-                label="Appliquer les filtres"
-                onClick={applyFilters}
-              />
+              <Button label="Appliquer les filtres" onClick={applyFilters} />
               {hasActiveFilters() && (
-                <Button
-                  label="Réinitialiser"
-                  color="secondary"
-                  onClick={resetFilters}
-                />
+                <Button label="Réinitialiser" color="secondary" onClick={resetFilters} />
               )}
             </div>
           </div>

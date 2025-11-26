@@ -10,6 +10,8 @@ import { getBillingDetails } from '#services/common'
 import Stock from '#models/stock'
 import Movement from '#models/movement'
 import Product from '#models/product'
+import PDFDocument from 'pdfkit'
+import { DateTime } from 'luxon'
 
 export default class BillingsController {
   /**
@@ -600,6 +602,211 @@ export default class BillingsController {
       return response.status(error.status || 500).send({
         code: error.code,
         message: error.messages,
+      })
+    }
+  }
+
+  async exportPdf({ request, response }: HttpContext) {
+    try {
+      const query = Billings.query() //@ts-ignore
+        .preload('thirdParties')
+
+      // Appliquer les mêmes filtres que dans la méthode billings
+      const status = request.qs().status
+      const customerId = request.qs().customerId
+      const type = request.qs().type
+      const dateFrom = request.qs().dateFrom
+      const dateTo = request.qs().dateTo
+      const amountMin = request.qs().amountMin
+      const amountMax = request.qs().amountMax
+
+      if (status) {
+        query.where('status', status)
+      }
+
+      if (customerId) {
+        query.where('thirdPartiesId', customerId)
+      }
+
+      if (type) {
+        query.where('type', type)
+      }
+
+      if (dateFrom) {
+        query.where('billingDate', '>=', dateFrom)
+      }
+
+      if (dateTo) {
+        query.where('billingDate', '<=', dateTo)
+      }
+
+      if (amountMin) {
+        query.where('amountIncludingVat', '>=', amountMin)
+      }
+
+      if (amountMax) {
+        query.where('amountIncludingVat', '<=', amountMax)
+      }
+
+      const billings = await query.orderBy('created_at', 'desc')
+
+      // Récupérer le nom du client si un filtre est appliqué
+      let customerName = null
+      if (customerId) {
+        const customer = await ThirdParties.find(customerId)
+        if (customer) customerName = customer.name
+      }
+
+      // Créer le document PDF avec Promise
+      return new Promise<void>((resolve, reject) => {
+        const doc = new PDFDocument({ margin: 50 })
+        const buffers: Buffer[] = []
+
+        doc.on('data', (chunk) => buffers.push(chunk))
+        doc.on('end', () => {
+          try {
+            const pdfData = Buffer.concat(buffers)
+            response.header('Content-Type', 'application/pdf')
+            response.header(
+              'Content-Disposition',
+              `attachment; filename="factures_${DateTime.now().toFormat('yyyy-MM-dd')}.pdf"`
+            )
+            response.send(pdfData)
+            resolve()
+          } catch (error) {
+            reject(error)
+          }
+        })
+        doc.on('error', reject)
+
+        // En-tête du document
+        doc.fontSize(20).text('Liste des Factures', { align: 'center' })
+        doc.moveDown()
+
+        // Informations de filtrage
+        const filterInfo: string[] = []
+        if (status) filterInfo.push(`Statut: ${status}`)
+        if (customerName) filterInfo.push(`Client: ${customerName}`)
+        if (type) filterInfo.push(`Type: ${type}`)
+        if (dateFrom) filterInfo.push(`Date début: ${dateFrom}`)
+        if (dateTo) filterInfo.push(`Date fin: ${dateTo}`)
+        if (amountMin) filterInfo.push(`Montant min: ${amountMin} FCFA`)
+        if (amountMax) filterInfo.push(`Montant max: ${amountMax} FCFA`)
+
+        if (filterInfo.length > 0) {
+          doc.fontSize(10).text(`Filtres appliqués: ${filterInfo.join(', ')}`, { align: 'left' })
+          doc.moveDown()
+        }
+
+        doc.fontSize(10).text(`Date d'export: ${DateTime.now().toFormat('dd/MM/yyyy HH:mm')}`, {
+          align: 'left',
+        })
+        doc.fontSize(10).text(`Total: ${billings.length} facture(s)`, { align: 'left' })
+        doc.moveDown(2)
+
+        // Tableau des factures
+        let yPosition = doc.y
+        const startX = 50
+        const colWidths = [80, 100, 100, 80, 100, 80]
+        const headers = ['Réf.', 'Client', 'Date facturation', 'Montant TTC', 'Statut']
+
+        // En-têtes du tableau
+        doc.fontSize(10).font('Helvetica-Bold')
+        let xPosition = startX
+        headers.forEach((header, index) => {
+          doc.text(header, xPosition, yPosition, { width: colWidths[index], align: 'left' })
+          xPosition += colWidths[index] + 10
+        })
+        yPosition += 20
+
+        // Ligne de séparation
+        doc.moveTo(startX, yPosition).lineTo(550, yPosition).stroke()
+        yPosition += 10
+
+        // Données des factures
+        doc.font('Helvetica')
+        for (const billing of billings) {
+          if (yPosition > 700) {
+            // Nouvelle page si nécessaire
+            doc.addPage()
+            yPosition = 50
+          }
+
+          const billingDate = billing.billingDate
+            ? DateTime.fromISO(billing.billingDate).toFormat('dd/MM/yyyy')
+            : 'N/A'
+          const createdAt = billing.createdAt
+            ? DateTime.fromJSDate(billing.createdAt.toJSDate()).toFormat('dd/MM/yyyy')
+            : 'N/A'
+          const amount = billing.amountIncludingVat
+            ? `${Number.parseFloat(billing.amountIncludingVat)} FCFA`
+            : '0 FCFA'
+
+          const rowData = [
+            billing.code || 'N/A',
+            billing.thirdParties?.name || 'N/A',
+            billingDate,
+            amount,
+            billing.status
+              ? [
+                  {
+                    name: 'Brouillon (à valider)',
+                    status: BillingStatus.DRAFT,
+                    type: 'secondary',
+                  },
+                  {
+                    name: 'Impayée',
+                    status: BillingStatus.VALIDATE,
+                    type: 'warning',
+                  },
+                  {
+                    name: 'Abandonnée',
+                    status: BillingStatus.ABANDONED,
+                    type: 'danger',
+                  },
+                  {
+                    name: 'Règlement commencé',
+                    status: BillingStatus.BEGIN,
+                    type: 'primary',
+                  },
+                  {
+                    name: 'Payée (partiellement)',
+                    status: BillingStatus.PAID_PARTIALLY,
+                    type: 'info',
+                  },
+                  {
+                    name: 'Payée',
+                    status: BillingStatus.PAID,
+                    type: 'success',
+                  },
+                  {
+                    name: 'Avoir remboursée',
+                    status: BillingStatus.CREDIT_BACK,
+                    type: 'teal',
+                  },
+                ].find((item) => item.status === billing.status)?.name!
+              : 'N/A',
+          ]
+
+          xPosition = startX
+          rowData.forEach((data, index) => {
+            doc.fontSize(9).text(data || 'N/A', xPosition, yPosition, {
+              width: colWidths[index],
+              align: 'left',
+            })
+            xPosition += colWidths[index] + 10
+          })
+          yPosition += 20
+        }
+
+        // Finaliser le PDF
+        doc.end()
+      })
+    } catch (error) {
+      console.log(error)
+      return response.status(500).send({
+        code: 'EXPORT_ERROR',
+        message: 'Erreur lors de la génération du PDF',
       })
     }
   }

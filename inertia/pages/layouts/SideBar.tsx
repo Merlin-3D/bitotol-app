@@ -60,7 +60,7 @@ const navItems = [
   },
   {
     name: 'Inventaires',
-    href: '#',
+    href: '/dashboard/inventory',
     icon: InventoryIcon,
   },
 ]

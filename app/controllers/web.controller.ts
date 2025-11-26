@@ -66,8 +66,54 @@ export default class WebController {
     )
   }
 
-  async products({ inertia }: HttpContext) {
-    const products = await getProductsList()
+  async products({ inertia, request }: HttpContext) {
+    const query = Product.query()
+      //@ts-ignore
+      .preload('warehouse')
+      //@ts-ignore
+      .preload('user')
+
+    // Filtres
+    const type = request.qs().type
+    const warehouseId = request.qs().warehouseId
+    const search = request.qs().search
+
+    if (type) {
+      query.where('type', type)
+    }
+
+    if (warehouseId) {
+      query.where('warehousesId', warehouseId)
+    }
+
+    if (search) {
+      query.where((queryData) => {
+        queryData.where('name', 'ilike', `%${search}%`).orWhere('reference', 'ilike', `%${search}%`)
+      })
+    }
+
+    const productsFind = await query.orderBy('created_at', 'desc')
+
+    let products: any[] = []
+
+    if (productsFind) {
+      for (const product of productsFind) {
+        const stocks = await Stock.query()
+          .where('productId', product.id)
+          //@ts-ignore
+          .preload('warehouse')
+
+        products = [
+          ...products,
+          {
+            ...product.$original,
+            ...product.$preloaded,
+            stocks,
+          },
+        ]
+      }
+    }
+
     const warehouses = await getWarehouseList()
 
     return inertia.render('products/index', { products, warehouses }, { title: 'Produits' })
@@ -218,5 +264,50 @@ export default class WebController {
       { billing, products, item, customers, csrfToken: request.csrfToken },
       { title: 'Détails' }
     )
+  }
+
+  async inventory({ inertia, request }: HttpContext) {
+    const query = Stock.query()
+      //@ts-ignore
+      .preload('product')
+      //@ts-ignore
+      .preload('warehouse')
+
+    // Filtres
+    const dateFrom = request.qs().dateFrom
+    const dateTo = request.qs().dateTo
+    const warehouseId = request.qs().warehouseId
+
+    if (dateFrom) {
+      query.where('created_at', '>=', dateFrom)
+    }
+
+    if (dateTo) {
+      query.where('created_at', '<=', dateTo)
+    }
+
+    if (warehouseId) {
+      query.where('warehousesId', warehouseId)
+    }
+
+    const stocks = await query.orderBy('created_at', 'desc')
+
+    // Formater les données pour l'inventaire
+    const inventory = stocks.map((stock) => ({
+      id: stock.id,
+      productId: stock.productId,
+      warehousesId: stock.warehousesId,
+      product: stock.product,
+      warehouse: stock.warehouse,
+      physicalQuantity: stock.physicalQuantity,
+      virtualQuantity: stock.virtualQuantity,
+      unitPurchasePrice: stock.unitPurchasePrice,
+      createdAt: stock.createdAt.toISO()!,
+      updatedAt: stock.updatedAt?.toISO() || stock.createdAt.toISO()!,
+    }))
+
+    const warehouses = await getWarehouseList()
+
+    return inertia.render('inventory/index', { inventory, warehouses }, { title: 'Inventaire' })
   }
 }

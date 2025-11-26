@@ -7,22 +7,78 @@ import {
   formatNumber,
   getDaysUntilExpiration,
   getExpirationStyle,
+  productType,
 } from '../utils/common'
 import { Link, router } from '@inertiajs/react'
 import _, { isNil } from 'lodash'
 import classNames from 'classnames'
 import Badge from '~/components/badge'
 import Button from '~/components/button'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import CreateProduct from './components/create-product'
+import Input from '~/components/input'
+import SelectMenu from '~/components/select-menu'
+import { ProductType } from '#models/enum/product_enum'
 
 interface ProductsProps {
   products: ProductResponse[]
   warehouses: WarehaouseResponse[]
 }
 
+interface ProductFilters {
+  type: string | null
+  warehouseId: string | null
+  search: string | null
+}
+
 export default function Products({ products, warehouses }: ProductsProps) {
   const [openAddModal, setOpenAddModal] = useState<boolean>(false)
+  const [showFilters, setShowFilters] = useState<boolean>(false)
+  const [filters, setFilters] = useState<ProductFilters>({
+    type: null,
+    warehouseId: null,
+    search: null,
+  })
+
+  // Récupérer les filtres depuis l'URL au chargement
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    setFilters({
+      type: urlParams.get('type') || null,
+      warehouseId: urlParams.get('warehouseId') || null,
+      search: urlParams.get('search') || null,
+    })
+  }, [])
+
+  const applyFilters = () => {
+    const params: Record<string, string> = {}
+    
+    if (filters.type) params.type = filters.type
+    if (filters.warehouseId) params.warehouseId = filters.warehouseId
+    if (filters.search) params.search = filters.search
+
+    router.get('/dashboard/products', params, {
+      preserveState: true,
+      preserveScroll: true,
+    })
+  }
+
+  const resetFilters = () => {
+    const emptyFilters: ProductFilters = {
+      type: null,
+      warehouseId: null,
+      search: null,
+    }
+    setFilters(emptyFilters)
+    router.get('/dashboard/products', {}, {
+      preserveState: true,
+      preserveScroll: true,
+    })
+  }
+
+  const hasActiveFilters = () => {
+    return Object.values(filters).some(value => value !== null && value !== '')
+  }
 
   const columns: Column<ProductResponse>[] = [
     {
@@ -144,16 +200,81 @@ export default function Products({ products, warehouses }: ProductsProps) {
             <ProductIcon className="h-6 w-6" />
             <span>Produits | Services ({products.length})</span>
           </div>
-          <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+          <div className="flex items-center gap-2">
             <Button
-              label={'Nouveau produit | service'}
-              onClick={() => {
-                setOpenAddModal(true)
-              }}
+              label={showFilters ? 'Masquer les filtres' : 'Afficher les filtres'}
+              color="secondary"
+              onClick={() => setShowFilters(!showFilters)}
             />
+            <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+              <Button
+                label={'Nouveau produit | service'}
+                onClick={() => {
+                  setOpenAddModal(true)
+                }}
+              />
+            </div>
           </div>
         </div>
         <hr />
+        
+        {showFilters && (
+          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Filtre par type */}
+              <div>
+                <label className="block text-sm font-medium mb-1">Type</label>
+                <SelectMenu
+                  label="Sélectionner un type"
+                  selected={productType.find(t => t.value === filters.type) || null}
+                  data={productType}
+                  getLabel={(item) => item?.name || ''}
+                  getKey={(item) => item?.value || ''}
+                  onSelected={(item) => setFilters({ ...filters, type: item?.value || null })}
+                />
+              </div>
+
+              {/* Filtre par entrepôt */}
+              <div>
+                <label className="block text-sm font-medium mb-1">Emplacement</label>
+                <SelectMenu
+                  label="Sélectionner un emplacement"
+                  selected={warehouses.find(w => w.id === filters.warehouseId) || null}
+                  data={warehouses}
+                  getLabel={(item) => item?.name || ''}
+                  getKey={(item) => item?.id || ''}
+                  onSelected={(item) => setFilters({ ...filters, warehouseId: item?.id || null })}
+                />
+              </div>
+
+              {/* Filtre par recherche */}
+              <div>
+                <Input
+                  label="Recherche (nom, référence)"
+                  type="text"
+                  value={filters.search || ''}
+                  onChange={(e) => setFilters({ ...filters, search: e.target.value || null })}
+                  placeholder="Rechercher..."
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 mt-4">
+              <Button
+                label="Appliquer les filtres"
+                onClick={applyFilters}
+              />
+              {hasActiveFilters() && (
+                <Button
+                  label="Réinitialiser"
+                  color="secondary"
+                  onClick={resetFilters}
+                />
+              )}
+            </div>
+          </div>
+        )}
+
         <DataTable<ProductResponse> columns={columns} data={products} withPaginate />
       </div>
       <CreateProduct
