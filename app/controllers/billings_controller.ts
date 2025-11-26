@@ -61,7 +61,6 @@ export default class BillingsController {
 
     try {
       const data = await request.validateUsing(validator.BillingsCreditStatus)
-
       const parentBilling = await Billings.findOrFail(data.parentBillingId)
       const currentBilling = await Billings.findOrFail(id)
 
@@ -253,7 +252,19 @@ export default class BillingsController {
         }
       }
 
-      return billing
+      return await Billings.query()
+        .where('id', id)
+        //@ts-ignore
+        .preload('user')
+        //@ts-ignore
+        .preload('thirdParties')
+        //@ts-ignore
+        .preload('billingItem')
+
+        .preload('childrenBillings')
+        //@ts-ignore
+        .preload('parentBilling')
+        .first()
     } catch (error) {
       console.log(error)
       response.status(error.status).send({
