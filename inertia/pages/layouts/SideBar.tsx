@@ -14,6 +14,7 @@ import StockIcon from '~/components/icons/stock.icon'
 import InvoiceIcon from '~/components/icons/invoice.icon'
 import WarehouseIcon from '~/components/icons/warehouse.icon'
 import MovementIcon from '~/components/icons/movment.icon'
+import InventoryIcon from '~/components/icons/inventory.icon'
 
 const navItems = [
   {
@@ -57,11 +58,11 @@ const navItems = [
     href: '/dashboard/warehouses',
     icon: WarehouseIcon,
   },
-  // {
-  //   name: 'Inventaires',
-  //   href: '#',
-  //   icon: InventoryIcon,
-  // },
+  {
+    name: 'Inventaires',
+    href: '#',
+    icon: InventoryIcon,
+  },
 ]
 
 interface SidebarProps {

@@ -162,10 +162,48 @@ export default class WebController {
     return inertia.render('movement/index', { movements }, { title: 'Movement' })
   }
 
-  async billings({ inertia }: HttpContext) {
-    const billings = await Billings.query() //@ts-ignore
+  async billings({ inertia, request }: HttpContext) {
+    const query = Billings.query() //@ts-ignore
       .preload('thirdParties')
-      .orderBy('created_at', 'desc')
+
+    // Filtres
+    const status = request.qs().status
+    const customerId = request.qs().customerId
+    const type = request.qs().type
+    const dateFrom = request.qs().dateFrom
+    const dateTo = request.qs().dateTo
+    const amountMin = request.qs().amountMin
+    const amountMax = request.qs().amountMax
+
+    if (status) {
+      query.where('status', status)
+    }
+
+    if (customerId) {
+      query.where('thirdPartiesId', customerId)
+    }
+
+    if (type) {
+      query.where('type', type)
+    }
+
+    if (dateFrom) {
+      query.where('billingDate', '>=', dateFrom)
+    }
+
+    if (dateTo) {
+      query.where('billingDate', '<=', dateTo)
+    }
+
+    if (amountMin) {
+      query.where('amountIncludingVat', '>=', amountMin)
+    }
+
+    if (amountMax) {
+      query.where('amountIncludingVat', '<=', amountMax)
+    }
+
+    const billings = await query.orderBy('created_at', 'desc')
     const customers = await ThirdParties.query().orderBy('created_at', 'desc')
 
     return inertia.render('billings/index', { billings, customers }, { title: 'Billings' })
