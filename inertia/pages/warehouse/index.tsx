@@ -105,7 +105,7 @@ export default function Warehouse({ warehouses }: WarehouseProps) {
       <CreateWarehouse
         // currentCustomer={currentCustomer}
         openAddModal={openAddModal}
-        handleOpenModlal={() => setOpenAddModal(false)}
+        handleOpenModal={() => setOpenAddModal(false)}
       />
     </AdminLayout>
   )

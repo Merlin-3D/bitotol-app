@@ -1,9 +1,10 @@
+import Billings from '#models/billings'
 import Movement from '#models/movement'
 import Product from '#models/product'
 import Stock from '#models/stock'
 import ThirdParties from '#models/third_parties'
 import Warehouses from '#models/warehouses'
-import { getProductsList, getWarehouseList } from '#services/common'
+import { getBillingDetails, getProductsList, getWarehouseList } from '#services/common'
 import type { HttpContext } from '@adonisjs/core/http'
 import _ from 'lodash'
 
@@ -159,5 +160,25 @@ export default class WebController {
       })
 
     return inertia.render('movement/index', { movements }, { title: 'Movement' })
+  }
+
+  async billings({ inertia }: HttpContext) {
+    const billings = await Billings.query() //@ts-ignore
+      .preload('thirdParties')
+      .orderBy('created_at', 'desc')
+    const customers = await ThirdParties.query().orderBy('created_at', 'desc')
+
+    return inertia.render('billings/index', { billings, customers }, { title: 'Billings' })
+  }
+
+  async billingDetails({ params, inertia, request }: HttpContext) {
+    const { id } = params
+    const customers = await ThirdParties.query().orderBy('created_at', 'desc')
+    const { billing, products, item } = await getBillingDetails(id)
+    return inertia.render(
+      'billings/details/index',
+      { billing, products, item, customers, csrfToken: request.csrfToken },
+      { title: 'Détails' }
+    )
   }
 }

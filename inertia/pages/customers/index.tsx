@@ -134,7 +134,7 @@ export default function Customers({ customers }: CustomersProps) {
       <CreateCustomer
         currentCustomer={currentCustomer}
         openAddModal={openAddModal}
-        handleOpenModlal={() => setOpenAddModal(false)}
+        handleOpenModal={() => setOpenAddModal(false)}
       />
       {customerId && (
         <ConfirmDialog

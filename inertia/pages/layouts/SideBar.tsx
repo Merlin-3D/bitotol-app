@@ -13,7 +13,6 @@ import ProductsIcon from '~/components/icons/products.icon'
 import StockIcon from '~/components/icons/stock.icon'
 import InvoiceIcon from '~/components/icons/invoice.icon'
 import WarehouseIcon from '~/components/icons/warehouse.icon'
-import InventoryIcon from '~/components/icons/inventory.icon'
 import MovementIcon from '~/components/icons/movment.icon'
 
 const navItems = [
@@ -40,7 +39,7 @@ const navItems = [
 
   {
     name: 'Facturations',
-    href: '#',
+    href: '/dashboard/billings',
     icon: InvoiceIcon,
   },
   {

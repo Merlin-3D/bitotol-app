@@ -22,14 +22,14 @@ interface CreateProductProsp {
   warehouses: WarehaouseResponse[]
   currentProduct?: ProductResponse | null
   openAddModal: boolean
-  handleOpenModlal: () => void
+  handleOpenModal: () => void
 }
 
 export default function CreateProduct({
   warehouses,
   currentProduct,
   openAddModal,
-  handleOpenModlal,
+  handleOpenModal,
 }: CreateProductProsp) {
   const { data, setData, post, put, processing, reset } = useForm({
     name: '',
@@ -110,7 +110,7 @@ export default function CreateProduct({
         preserveScroll: true,
         onSuccess: () => {
           toast.success('Modification réussie.')
-          handleOpenModlal()
+          handleOpenModal()
         },
       })
     } else {
@@ -119,7 +119,7 @@ export default function CreateProduct({
         onSuccess: () => {
           reset()
           toast.success('Opération réussie.')
-          handleOpenModlal()
+          handleOpenModal()
         },
       })
     }
@@ -130,7 +130,7 @@ export default function CreateProduct({
       title={currentProduct ? 'Modifier un produit | service' : 'Ajouter un produit | service'}
       confirmTitle={currentProduct ? 'Modifier' : 'Ajouter'}
       open={openAddModal}
-      setOpen={() => handleOpenModlal()}
+      setOpen={() => handleOpenModal()}
       handleConfirm={handleConfirm}
       size="4xl"
       color={currentProduct ? 'info' : 'primary'}

@@ -79,3 +79,96 @@ export const movementType = [
     value: 'shipping-cancel',
   },
 ]
+
+export enum BillingStatus {
+  DRAFT = 'Draft', //
+  VALIDATE = 'Validate', //
+  ABANDONED = 'Abandoned', //
+  BEGIN = 'Begin', //
+  PAID = 'Paid', //
+  PAID_PARTIALLY = 'Paid Partially', //
+  CREDIT_BACK = 'Credit Back',
+}
+
+export const isExpired = (inputDate: string, daysToAdd: number) => {
+  const today = DateTime.now()
+  const formattedDate = DateTime.fromFormat(inputDate, 'dd/MM/yyyy')
+  // Vérifie si la date d'entrée est valide
+
+  if (!formattedDate.isValid) {
+    return false
+  }
+
+  // Ajoute le nombre de jours spécifié
+  const futureDate = formattedDate.plus({ days: daysToAdd })
+
+  // Retourne true si la commande est expirée
+  return futureDate < today
+}
+
+export const billingStatus = [
+  {
+    name: 'Brouillon (à valider)',
+    status: BillingStatus.DRAFT,
+    type: 'secondary',
+  },
+  {
+    name: 'Impayée',
+    status: BillingStatus.VALIDATE,
+    type: 'warning',
+  },
+  {
+    name: 'Abandonnée',
+    status: BillingStatus.ABANDONED,
+    type: 'danger',
+  },
+  {
+    name: 'Règlement commencé',
+    status: BillingStatus.BEGIN,
+    type: 'primary',
+  },
+  {
+    name: 'Payée (partiellement)',
+    status: BillingStatus.PAID_PARTIALLY,
+    type: 'info',
+  },
+  {
+    name: 'Payée',
+    status: BillingStatus.PAID,
+    type: 'success',
+  },
+  {
+    name: 'Avoir remboursée',
+    status: BillingStatus.CREDIT_BACK,
+    type: 'teal',
+  },
+]
+
+export const billingType = [
+  {
+    name: 'Facture de doit',
+    value: 'SI', //Standard Invoice
+    invoice: 'Facture',
+  },
+  {
+    name: "Facture d'acompte",
+    value: 'DI', //Deposite Invoice
+    invoice: 'Facture acompte',
+  },
+  {
+    name: 'Facture avoir',
+    value: 'CI', //Credit Invoice
+    invoice: 'Facture avoir',
+  },
+]
+
+export const lineType = [
+  {
+    name: 'Produits',
+    value: ProductType.PRODUCT,
+  },
+  {
+    name: 'Services',
+    value: ProductType.SERVICE,
+  },
+]

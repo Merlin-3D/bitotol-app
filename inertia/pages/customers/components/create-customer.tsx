@@ -16,13 +16,13 @@ interface ErrorFieldsCustomers {
 interface CreateCustomerProps {
   currentCustomer?: ThirdParties | null
   openAddModal: boolean
-  handleOpenModlal: () => void
+  handleOpenModal: () => void
 }
 
 export default function CreateCustomer({
   currentCustomer,
   openAddModal,
-  handleOpenModlal,
+  handleOpenModal,
 }: CreateCustomerProps) {
   const { data, setData, post, put, processing, reset } = useForm({
     name: '',
@@ -66,7 +66,7 @@ export default function CreateCustomer({
         preserveScroll: true,
         onSuccess: () => {
           toast.success('Modification réussie.')
-          handleOpenModlal()
+          handleOpenModal()
         },
       })
     } else {
@@ -75,7 +75,7 @@ export default function CreateCustomer({
         onSuccess: () => {
           reset()
           toast.success('Opération réussie.')
-          handleOpenModlal()
+          handleOpenModal()
         },
       })
     }
@@ -103,7 +103,7 @@ export default function CreateCustomer({
       title={currentCustomer ? 'Modifier un client' : 'Ajouter un client'}
       confirmTitle={currentCustomer ? 'Modifier' : 'Ajouter'}
       open={openAddModal}
-      setOpen={() => handleOpenModlal()}
+      setOpen={() => handleOpenModal()}
       handleConfirm={handleConfirm}
       size="4xl"
       color={currentCustomer ? 'info' : 'primary'}

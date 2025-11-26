@@ -159,7 +159,7 @@ export default function Products({ products, warehouses }: ProductsProps) {
       <CreateProduct
         warehouses={warehouses}
         openAddModal={openAddModal}
-        handleOpenModlal={() => setOpenAddModal(false)}
+        handleOpenModal={() => setOpenAddModal(false)}
       />
     </AdminLayout>
   )

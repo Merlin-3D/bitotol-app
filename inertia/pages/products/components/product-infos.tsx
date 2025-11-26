@@ -271,7 +271,7 @@ export default function ProductInfos({
         warehouses={warehouses}
         currentProduct={product}
         openAddModal={openModal}
-        handleOpenModlal={() => setOpenModal(false)}
+        handleOpenModal={() => setOpenModal(false)}
       />
 
       <ConfirmDialog

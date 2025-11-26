@@ -1,6 +1,7 @@
 const AuthController = () => import('#controllers/auth_controller')
 import router from '@adonisjs/core/services/router'
 import { middleware } from './kernel.js'
+const BillingsController = () => import('#controllers/billings_controller')
 const StocksController = () => import('#controllers/stocks_controller')
 const ProductsController = () => import('#controllers/products_controller')
 const WarehousesController = () => import('#controllers/warehouses_controller')
@@ -35,6 +36,19 @@ router
     router.delete('/products/:id', [ProductsController, 'destroy'])
     router.get('/stocks', [WebController, 'stocks'])
     router.get('/movements', [WebController, 'movements'])
+    router.get('/billings', [WebController, 'billings'])
+    router.post('/billings', [BillingsController, 'store'])
+    router.get('/billings/:id', [WebController, 'billingDetails'])
+    router.post('/billings/:id', [BillingsController, 'addBillingItem'])
+    router.delete('billings/:id', [BillingsController, 'destroy'])
+    router.put('billings/item/:id/update', [BillingsController, 'updateBillingItem'])
+    router.delete('billings/item/:id', [BillingsController, 'destroyBillingItem'])
+    router.put('billings-credit/:id/status', [BillingsController, 'validateCredit'])
+    router.put('billings/:id/status', [BillingsController, 'update'])
+    router.post('billing-payment', [BillingsController, 'addPayment'])
+    router.post('billings/credit', [BillingsController, 'createCredit'])
+    router.delete('billing-payment/:id/remove', [BillingsController, 'removePayment'])
+    router.put('billings/:id', [BillingsController, 'edit'])
 
     // Logout
     router.post('/logout', [AuthController, 'logout'])

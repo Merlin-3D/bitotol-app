@@ -151,7 +151,7 @@ export default function WarehouseInfos({ warehouse }: WarehouseInfosProps) {
       <CreateWarehouse
         currentWarehouse={warehouse}
         openAddModal={openModal}
-        handleOpenModlal={() => setOpenModal(false)}
+        handleOpenModal={() => setOpenModal(false)}
       />
       {/* 
 

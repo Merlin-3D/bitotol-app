@@ -14,13 +14,13 @@ interface ErrorFieldsWarehouse {
 interface CreateWarehouseProps {
   currentWarehouse?: WarehaouseResponse | null
   openAddModal: boolean
-  handleOpenModlal: () => void
+  handleOpenModal: () => void
 }
 
 export default function CreateWarehouse({
   currentWarehouse,
   openAddModal,
-  handleOpenModlal,
+  handleOpenModal,
 }: CreateWarehouseProps) {
   const { data, setData, post, put, processing, reset } = useForm({
     name: '',
@@ -62,7 +62,7 @@ export default function CreateWarehouse({
         preserveScroll: true,
         onSuccess: () => {
           toast.success('Modification réussie.')
-          handleOpenModlal()
+          handleOpenModal()
         },
       })
     } else {
@@ -71,7 +71,7 @@ export default function CreateWarehouse({
         onSuccess: () => {
           reset()
           toast.success('Opération réussie.')
-          handleOpenModlal()
+          handleOpenModal()
         },
       })
     }
@@ -92,7 +92,7 @@ export default function CreateWarehouse({
       title={currentWarehouse ? 'Modifier un entrepôt' : 'Ajouter un entrepôt'}
       confirmTitle={currentWarehouse ? 'Modifier' : 'Ajouter'}
       open={openAddModal}
-      setOpen={() => handleOpenModlal()}
+      setOpen={() => handleOpenModal()}
       handleConfirm={handleConfirm}
       size="4xl"
       color={currentWarehouse ? 'warning' : 'primary'}

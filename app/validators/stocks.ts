@@ -67,72 +67,50 @@ export const purchasePriceStore = vine.compile(
   })
 )
 
-// export const BillingsStore = vine.compile(
-//   vine.object({
-//     refBillingSupplier: vine.string().optional(),
-//     thirdPartiesId: vine.string(),
-//     orderId: vine.string().nullable(),
-//     businessProposalId: vine.string().nullable().optional(),
-//     shippingsId: vine.string().nullable(),
-//     type: vine.string(),
-//     thirdPartiesType: vine.enum(OrderType),
-//     libelle: vine.string().nullable(),
-//     billingDate: vine.string(),
-//     paymentModeId: vine.string().nullable(),
-//     paymentTermId: vine.string().nullable(),
-//     paymentDeadline: vine.string(),
-//     currenciesId: vine.string().nullable(),
-//     status: vine.string(),
-//     amountIncludingVat: vine.string().nullable(),
-//     amountExcludingVat: vine.string().nullable(),
-//     vatAmount: vine.string().nullable(),
-//     userId: vine.string(),
-//     fileName: vine.string().nullable(),
-//   })
-// )
+export const BillingsStore = vine.compile(
+  vine.object({
+    thirdPartiesId: vine.string(),
+    type: vine.string(),
+    description: vine.string().nullable().optional(),
+    billingDate: vine.string(),
+    status: vine.string().optional(),
+  })
+)
 
-// export const BillingsCreditStore = vine.compile(
-//   vine.object({
-//     refBillingSupplier: vine.string().nullable().optional(),
-//     isFullRefund: vine.boolean(),
-//     thirdPartiesId: vine.string(),
-//     orderId: vine.string().nullable(),
-//     shippingsId: vine.string().nullable(),
-//     type: vine.string(),
-//     thirdPartiesType: vine.enum(OrderType),
-//     libelle: vine.string().nullable(),
-//     billingDate: vine.string(),
-//     paymentModeId: vine.string().nullable(),
-//     paymentTermId: vine.string().nullable(),
-//     paymentDeadline: vine.string(),
-//     currenciesId: vine.string().nullable(),
-//     status: vine.string(),
-//     amountIncludingVat: vine.string().nullable(),
-//     amountExcludingVat: vine.string().nullable(),
-//     vatAmount: vine.string().nullable(),
-//     allocatedPrice: vine.number().nullable(),
-//     remainingPrice: vine.number().nullable(),
-//     userId: vine.string(),
-//     fileName: vine.string().nullable(),
-//     parentBillingId: vine.string().optional(),
-//     billingItem: vine.array(
-//       vine.object({
-//         productId: vine.string(),
-//         quantity: vine.number(),
-//         price: vine.number(),
-//         total: vine.number(),
-//         discount: vine.number().nullable(),
-//         tva: vine.string().nullable(),
-//       })
-//     ),
-//   })
-// )
+export const BillingsCreditStore = vine.compile(
+  vine.object({
+    refBillingSupplier: vine.string().nullable().optional(),
+    isFullRefund: vine.boolean(),
+    thirdPartiesId: vine.string(),
+    type: vine.string(),
+    description: vine.string().nullable(),
+    billingDate: vine.string(),
+    status: vine.string(),
+    amountIncludingVat: vine.string().nullable(),
+    amountExcludingVat: vine.string().nullable(),
+    vatAmount: vine.string().nullable(),
+    allocatedPrice: vine.number().nullable(),
+    remainingPrice: vine.number().nullable(),
+    userId: vine.string(),
+    parentBillingId: vine.string().optional(),
+    billingItem: vine.array(
+      vine.object({
+        productId: vine.string(),
+        quantity: vine.number(),
+        price: vine.number(),
+        total: vine.number(),
+        discount: vine.number().nullable(),
+        tva: vine.string().nullable(),
+      })
+    ),
+  })
+)
 
-// export const BillingsCreditStatus = vine.compile(
-//   vine.object({
-//     parentBillingId: vine.string(),
-//   })
-// )
+export const BillingsCreditStatus = vine.compile(
+  vine.object({
+    parentBillingId: vine.string(),
+  })
+)
 
 // export const BillingsUpdate = vine.compile(
 //   vine.object({
@@ -280,53 +258,46 @@ export const purchasePriceStore = vine.compile(
 //   })
 // )
 
-// export const BillingsUpdate = vine.compile(
-//   vine.object({
-//     refBillingSupplier: vine.string().optional(),
-//     libelle: vine.string().nullable(),
-//     billingDate: vine.string(),
-//     paymentModeId: vine.string().nullable(),
-//     paymentTermId: vine.string().nullable(),
-//     paymentDeadline: vine.string(),
-//     currenciesId: vine.string().nullable(),
-//     status: vine.string(),
-//     type: vine.string(),
-//     fileName: vine.string().nullable(),
-//   })
-// )
+export const BillingsUpdate = vine.compile(
+  vine.object({
+    refBillingSupplier: vine.string().optional(),
+    description: vine.string().nullable(),
+    billingDate: vine.string(),
+    status: vine.string(),
+    type: vine.string(),
+  })
+)
 
-// export const BillingItemCreate = vine.compile(
-//   vine.object({
-//     thirdPartiesId: vine.string(),
-//     productId: vine.string(),
-//     billingsId: vine.string(),
-//     tva: vine.string().nullable(),
-//     price: vine.number(),
-//     discount: vine.number().nullable(),
-//     quantity: vine.number(),
-//   })
-// )
+export const BillingItemCreate = vine.compile(
+  vine.object({
+    thirdPartiesId: vine.string(),
+    productId: vine.string(),
+    billingsId: vine.string(),
+    tva: vine.string().nullable(),
+    price: vine.number(),
+    discount: vine.number().nullable(),
+    quantity: vine.number(),
+  })
+)
 
-// export const BillingItemUpdate = vine.compile(
-//   vine.object({
-//     tva: vine.string().nullable(),
-//     price: vine.number(),
-//     discount: vine.number().nullable(),
-//     quantity: vine.number(),
-//   })
-// )
+export const BillingItemUpdate = vine.compile(
+  vine.object({
+    tva: vine.string().nullable(),
+    price: vine.number(),
+    discount: vine.number().nullable(),
+    quantity: vine.number(),
+  })
+)
 
-// export const BillingPaymentCreate = vine.compile(
-//   vine.object({
-//     billingsId: vine.string(),
-//     paymentModeId: vine.string(),
-//     paymentDate: vine.string(),
-//     accountNumber: vine.string().nullable(),
-//     comment: vine.string().nullable(),
-//     oldAmount: vine.number(),
-//     amount: vine.number(),
-//   })
-// )
+export const BillingPaymentCreate = vine.compile(
+  vine.object({
+    billingsId: vine.string(),
+    paymentDate: vine.string(),
+    comment: vine.string().nullable(),
+    oldAmount: vine.number(),
+    amount: vine.number(),
+  })
+)
 
 // export const BusinessProposalStore = vine.compile(
 //   vine.object({

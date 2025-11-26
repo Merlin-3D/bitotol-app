@@ -1,3 +1,5 @@
+import ThirdParties from '#models/third_parties'
+
 export interface User {
   id: string
   name: string
@@ -80,4 +82,86 @@ export interface MovementResponse {
   updatedAt?: string
   stock: StockResponse
   user: User
+}
+export interface BillingRequest {
+  refBillingSupplier: string
+  thirdPartiesId: string
+  type: string
+  description: string | null
+  billingDate: string
+  paymentDeadline: string
+  status: string
+  amountIncludingVat?: string | null
+  amountExcludingVat?: string | null
+  vatAmount?: string | null
+  userId: string
+}
+
+export interface BillingResponse extends BillingRequest {
+  id: string
+  code: string
+  paymentMode?: string
+  thirdParties?: {
+    id: string
+    name: string
+    clientCode: string
+  }
+  parentBillingId?: string
+  childrenBillings?: BillingResponse[]
+  parentBilling?: BillingResponse
+  remainingPrice: number
+  allocatedPrice: number
+  billingPayments: BillingPayment[]
+  isFullRefund: boolean | null
+  user: User
+  createdAt: string
+  updatedAt: string
+}
+
+export interface BillingItem extends ProductResponse {
+  billingItemId?: string
+  tva?: string
+  discount?: string
+  priceIncludingVat: number
+  product?: ProductResponse
+  productId: string
+  quantity: number
+  remainingQuantity: number
+  allocatedQuantity: number
+  price: number
+  total: number
+}
+
+export interface BillingPayment {
+  id?: string
+  code?: string
+  billingsId: string
+  paymentDate: string
+  comment?: string | null
+  oldAmount: number
+  amount: number
+  paymentMode?: PaymentMethodResponse
+}
+
+export interface PaymentMethodResponse {
+  id: string
+  code?: string
+  libelle: string
+  active: boolean
+}
+
+export interface PurchasePriceSupplierResponse {
+  id: string
+  productId: string
+  thirdPartiesId: string
+  reference: string
+  tva: string | null
+  currenciesId: string | null
+  price: number | string | null
+  discount: number | null
+  deliveryTime: number | null
+  product?: ProductResponse
+  thirdParties?: ThirdParties
+  createdAt?: string
+  updatedAt?: string
 }
