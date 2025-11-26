@@ -735,9 +735,9 @@ export default class BillingsController {
           const billingDate = billing.billingDate
             ? DateTime.fromISO(billing.billingDate).toFormat('dd/MM/yyyy')
             : 'N/A'
-          const createdAt = billing.createdAt
-            ? DateTime.fromJSDate(billing.createdAt.toJSDate()).toFormat('dd/MM/yyyy')
-            : 'N/A'
+          // const createdAt = billing.createdAt
+          //   ? DateTime.fromJSDate(billing.createdAt.toJSDate()).toFormat('dd/MM/yyyy')
+          //   : 'N/A'
           const amount = billing.amountIncludingVat
             ? `${Number.parseFloat(billing.amountIncludingVat)} FCFA`
             : '0 FCFA'
