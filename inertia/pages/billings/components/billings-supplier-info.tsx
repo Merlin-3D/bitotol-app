@@ -14,7 +14,13 @@ import { Column, DataTable } from '~/components/data-table'
 import { ProductType } from '#models/enum/product_enum'
 import { EditIcon, InvoiceIcon, RemoveIcon, TrashIcon } from '~/components/icons'
 import { Link, router, useForm, usePage } from '@inertiajs/react'
-import { BillingStatus, billingType, formatDateTime, formatNumber } from '~/pages/utils/common'
+import {
+  billingStatus,
+  BillingStatus,
+  billingType,
+  formatDateTime,
+  formatNumber,
+} from '~/pages/utils/common'
 import { ConfirmDialog } from '~/components/confirm-dialog'
 import Badge from '~/components/badge'
 import Button from '~/components/button'
@@ -84,6 +90,7 @@ export default function BillingsSupplierInfo({
   const [libelle, setLibelle] = useState<string | null>()
   const [billingDate, setBillingDate] = useState<string | null>()
   const [fieldErrorReglement, setFieldErrorReglement] = useState<ErrorFieldsReglement>()
+  const [openDetailDialog, setOpenDetailDialog] = useState(false)
 
   const fieldErrorReglementValidate = {
     amount: paymentAmount,
@@ -384,7 +391,110 @@ export default function BillingsSupplierInfo({
     router.visit(`/dashboard/billings/${response.id}`)
   }
 
-  const handleDowloadDoc = async () => {}
+  const handleDowloadDoc = () => {
+    setOpenDetailDialog(true)
+  }
+
+  const handlePrint = () => {
+    const printContent = document.getElementById('receipt-content')
+    if (!printContent) return
+
+    const printWindow = window.open('', '', 'height=600,width=800')
+    if (!printWindow) return
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Impression Facture</title>
+          <style>
+            @page {
+              size: 58mm auto;
+              margin: 0;
+            }
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+              font-family: monospace;
+            }
+            body {
+              width: 58mm;
+              color: black;
+              background: white;
+            }
+            .receipt-wrapper {
+              width: 58mm;
+              padding: 3mm 1mm;
+              background: white;
+              color: black;
+            }
+            img {
+              max-width: 25mm;
+              height: auto;
+              display: block;
+              margin: 0 auto;
+            }
+            .divider {
+              width: 100%;
+              border-top: 1px dashed #000;
+              margin: 4px 0;
+            }
+            p {
+              margin: 1px 0;
+              line-height: 1.2;
+              font-size: 10px;
+              color: black;
+            }
+            .text-xs {
+              font-size: 9px;
+            }
+            .text-center {
+              text-align: center;
+            }
+            .flex {
+              display: flex;
+            }
+            .justify-between {
+              justify-content: space-between;
+            }
+            @media print {
+              body {
+                width: 58mm;
+                margin: 0;
+                padding: 0;
+              }
+              .receipt-wrapper {
+                width: 100%;
+                color: black !important;
+                background: white !important;
+                -webkit-print-color-adjust: exact;
+              }
+              * {
+                color: black !important;
+                background: white !important;
+                font-family: monospace !important;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="receipt-wrapper">
+            ${printContent.innerHTML}
+          </div>
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+                window.close();
+              }, 250);
+            };
+          </script>
+        </body>
+      </html>
+    `)
+    printWindow.document.close()
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -422,9 +532,17 @@ export default function BillingsSupplierInfo({
             <p className="text-sm">FCFA</p>
             <hr />
             <div className="flex items-center justify-start gap-4">
-              <p className="text-sm text-left">#</p>
-            
-            
+              <p className="text-sm text-left">
+                {billing.status !== BillingStatus.DRAFT && (
+                  <Button
+                    color="warning"
+                    label={'Imprimer la facture'}
+                    onClick={() => {
+                      setOpenDetailDialog(true)
+                    }}
+                  />
+                )}
+              </p>
             </div>
 
             <hr />
@@ -666,6 +784,9 @@ export default function BillingsSupplierInfo({
               onClick={() => setOpenConfirm(true)}
               disabled={billing.status !== BillingStatus.DRAFT}
             />
+          )}
+          {billing.status !== BillingStatus.DRAFT && billing.status !== BillingStatus.VALIDATE && (
+            <Button label="Générer" onClick={() => handleDowloadDoc()} color="warning" size="xs" />
           )}
         </div>
       </div>
@@ -1058,6 +1179,184 @@ export default function BillingsSupplierInfo({
               className="w-[500px]"
             />
           </div>
+        </div>
+      </DialogModal>
+
+      {/* Modal d'impression de facture */}
+      <DialogModal
+        title={`Facture #${billing.code}`}
+        open={openDetailDialog}
+        setOpen={() => {
+          setOpenDetailDialog(false)
+        }}
+        size="xl"
+        color="warning"
+      >
+        <div className="p-6">
+          {/* Contenu pour l'impression (caché à l'écran) */}
+          <div id="receipt-content" className="hidden">
+            <div className="text-center">
+              <p className="text-xs">CENTRE DE SANTÉ LA GRACE B</p>
+              <p className="text-xs">--------------------------------</p>
+              <p className="text-xs">FACTURE</p>
+              <p className="text-xs">--------------------------------</p>
+              <p className="text-xs">Réf: #{billing.code}</p>
+              <p className="text-xs">
+                Date: {formatDateTime(billing.billingDate || billing.createdAt, true)}
+              </p>
+              <p className="text-xs">Client: {billing.thirdParties?.name || 'N/A'}</p>
+              {billing.thirdParties?.clientCode && (
+                <p className="text-xs">Vendeur: {billing.user.name}</p>
+              )}
+              <p className="text-xs">--------------------------------</p>
+
+              {item?.map((billingItem, index) => (
+                <div key={index} className="text-xs flex justify-between">
+                  <span>
+                    {billingItem.quantity}x {billingItem.name || billingItem.reference}
+                  </span>
+                  <span>{formatNumber(billingItem.price * billingItem.quantity)} FCFA</span>
+                </div>
+              ))}
+
+              <p className="text-xs">--------------------------------</p>
+              <div className="text-xs flex justify-between">
+                <span>Montant HT:</span>
+                <span>{formatNumber(Number(billing.amountExcludingVat || 0))} FCFA</span>
+              </div>
+              {Number(billing.vatAmount || 0) > 0 && (
+                <div className="text-xs flex justify-between">
+                  <span>TVA:</span>
+                  <span>{formatNumber(Number(billing.vatAmount || 0))} FCFA</span>
+                </div>
+              )}
+              <div className="text-xs flex justify-between">
+                <span>TOTAL TTC:</span>
+                <span>{formatNumber(Number(billing.amountIncludingVat || 0))} FCFA</span>
+              </div>
+              {billing.allocatedPrice && billing.allocatedPrice > 0 && (
+                <>
+                  <div className="text-xs flex justify-between">
+                    <span>Montant payé:</span>
+                    <span>{formatNumber(billing.allocatedPrice)} FCFA</span>
+                  </div>
+                  <div className="text-xs flex justify-between">
+                    <span>Reste à payer:</span>
+                    <span>{formatNumber(billing.remainingPrice || 0)} FCFA</span>
+                  </div>
+                </>
+              )}
+              <p className="text-xs">--------------------------------</p>
+              <p className="text-xs">
+                Statut:{' '}
+                {billingStatus.find((s) => s.status === billing.status)?.name || billing.status}
+              </p>
+              <p className="text-xs">--------------------------------</p>
+              <p className="text-xs">TVA non applicable</p>
+              <p className="text-xs">--------------------------------</p>
+              <p className="text-xs">AU REVOIR ET À BIENTÔT</p>
+            </div>
+          </div>
+
+          {/* Informations sur la facture (affichage écran) */}
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div>
+              <p className="text-sm text-gray-600">Date de facturation</p>
+              <p className="font-medium">
+                {formatDateTime(billing.billingDate || billing.createdAt, true)}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Client</p>
+              <p className="font-medium">{billing.thirdParties?.name || 'N/A'}</p>
+            </div>
+          </div>
+
+          {/* Liste des produits */}
+          <h3 className="font-medium text-lg mb-4 text-gray-700 border-b border-amber-300 pb-2">
+            Produits facturés
+          </h3>
+          <div className="mb-6 overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="text-left text-gray-600 border-b border-amber-300">
+                  <th className="pb-2">Produit</th>
+                  <th className="pb-2">Prix unitaire</th>
+                  <th className="pb-2">Quantité</th>
+                  <th className="pb-2 text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {item?.map((billingItem, index) => (
+                  <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : ''}>
+                    <td className="py-3">{billingItem.name || billingItem.reference}</td>
+                    <td className="py-3">{formatNumber(billingItem.price)} FCFA</td>
+                    <td className="py-3">{billingItem.quantity}</td>
+                    <td className="py-3 text-right">
+                      {formatNumber(billingItem.price * billingItem.quantity)} FCFA
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Totaux */}
+          <div className="bg-amber-50 rounded-lg p-4 mb-4 border border-amber-300">
+            <div className="flex justify-between mb-2">
+              <span className="text-gray-700">Montant HT:</span>
+              <span className="font-medium">
+                {formatNumber(Number(billing.amountExcludingVat || 0))} FCFA
+              </span>
+            </div>
+            {Number(billing.vatAmount || 0) > 0 && (
+              <div className="flex justify-between mb-2">
+                <span className="text-gray-700">TVA:</span>
+                <span className="font-medium">
+                  {formatNumber(Number(billing.vatAmount || 0))} FCFA
+                </span>
+              </div>
+            )}
+            <div className="flex justify-between font-bold text-lg pt-2 border-t border-amber-300">
+              <span className="text-gray-700">Total TTC:</span>
+              <span className="text-green-600">
+                {formatNumber(Number(billing.amountIncludingVat || 0))} FCFA
+              </span>
+            </div>
+            {billing.allocatedPrice && billing.allocatedPrice > 0 && (
+              <>
+                <div className="flex justify-between mt-2">
+                  <span className="text-gray-700">Montant payé:</span>
+                  <span className="font-medium">{formatNumber(billing.allocatedPrice)} FCFA</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-700">Reste à payer:</span>
+                  <span className="font-medium text-orange-600">
+                    {formatNumber(billing.remainingPrice || 0)} FCFA
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Statut */}
+          <div className="text-sm text-gray-600 mb-4">
+            <p>
+              <i className="fas fa-info-circle mr-2"></i>
+              Statut:{' '}
+              {billingStatus.find((s) => s.status === billing.status)?.name || billing.status}
+            </p>
+          </div>
+        </div>
+
+        {/* Pied du modal */}
+        <div className="px-6 py-3 bg-gray-100 text-right border-t border-amber-300">
+          <button
+            onClick={handlePrint}
+            className="px-4 py-2 rounded bg-amber-500 text-white font-medium hover:bg-amber-600"
+          >
+            Imprimer le reçu
+          </button>
         </div>
       </DialogModal>
     </div>
