@@ -21,6 +21,7 @@ export default class ProductsController {
     await new Product()
       .merge({
         ...data,
+        active: true,
         limitStockAlert: data.limitStockAlert ? Number(data.limitStockAlert) : null,
         optimalStock: data.optimalStock ? Number(data.optimalStock) : null,
         sellingPrice: data.sellingPrice ? Number(data.sellingPrice) : null,
@@ -112,7 +113,7 @@ export default class ProductsController {
       return null
     }
     product.name = payload.name
-    product.active = payload.active
+    product.active = true
     product.description = payload.description ? payload.description : null
     product.warehousesId = payload.warehousesId ? payload.warehousesId : null
     product.limitStockAlert = payload.limitStockAlert ? Number(payload.limitStockAlert) : null

@@ -1,4 +1,5 @@
 import Billings from '#models/billings'
+import { ProductType } from '#models/enum/product_enum'
 import Product from '#models/product'
 import Stock from '#models/stock'
 import Warehouses from '#models/warehouses'
@@ -100,6 +101,17 @@ export const getBillingDetails = async (id: string) => {
   }
 
   const products = await Product.query()
+    .leftJoin('stocks', 'stocks.product_id', 'products.id')
+    .where((query) => {
+      query
+        .where('products.type', ProductType.PRODUCT)
+        .andWhere('stocks.physical_quantity', '>', 0)
+        .andWhere('stocks.unit_purchase_price', '>', 0)
+    })
+    .orWhere('products.type', ProductType.SERVICE)
+    .select('products.*')
+    .preload('stock')
+
   return {
     billing,
     products,

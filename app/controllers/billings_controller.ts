@@ -2,11 +2,14 @@ import type { HttpContext } from '@adonisjs/core/http'
 import _ from 'lodash'
 import Billings from '#models/billings'
 import BillingItem from '#models/billing_item'
-import { BillingStatus } from '#models/enum/product_enum'
+import { BillingStatus, MovementType, ProductType } from '#models/enum/product_enum'
 import BillingPayment from '#models/billing_payment'
 import * as validator from '#validators/stocks'
 import ThirdParties from '#models/third_parties'
 import { getBillingDetails } from '#services/common'
+import Stock from '#models/stock'
+import Movement from '#models/movement'
+import Product from '#models/product'
 
 export default class BillingsController {
   /**
@@ -204,18 +207,12 @@ export default class BillingsController {
   /**
    * Handle form submission for the edit action
    */
-  async update({ params, response, request }: HttpContext) {
+  async update({ params, response, request, auth }: HttpContext) {
     const { id } = params
     try {
       const data = await request.validateUsing(validator.BillingsUpdate)
 
       const billing = await Billings.findByOrFail('id', id)
-
-      if (!billing) {
-        response.status(404).send({
-          message: 'Aucune facture',
-        })
-      }
 
       billing.refBillingSupplier = data.refBillingSupplier ? data.refBillingSupplier : null
       billing.description = data.description
@@ -224,16 +221,39 @@ export default class BillingsController {
       billing.type = data.type
 
       await billing.save()
-      return await Billings.query()
-        .where('id', id)
-        //@ts-ignore
-        .preload('user')
-        .preload('billingItem')
-        .preload('billingPayments')
-        .preload('childrenBillings')
-        //@ts-ignore
-        .preload('parentBilling')
-        .first()
+
+      if (data.status === BillingStatus.VALIDATE) {
+        const items = await BillingItem.query().where('billingsId', billing.id)
+
+        for (const item of items) {
+          const stock = await Stock.query().where('productId', item.productId).first()
+
+          if (stock) {
+            if (stock.physicalQuantity < item.quantity) {
+              throw new Error(`Insufficient stock for product ${item.productId}`)
+            }
+            await Movement.create({
+              stockId: stock.id,
+              title: `Vente du produit`,
+              code: `POS-${billing.code}`,
+              movementQuantity: `${item.quantity}`,
+              movementType: MovementType.OUT,
+              //@ts-ignore
+              userId: auth.user!.id!,
+              amount: item.quantity * item.price,
+            })
+
+            await stock
+              .merge({
+                physicalQuantity: stock.physicalQuantity - item.quantity,
+                virtualQuantity: stock.virtualQuantity - item.quantity,
+              })
+              .save()
+          }
+        }
+      }
+
+      return billing
     } catch (error) {
       console.log(error)
       response.status(error.status).send({
@@ -261,8 +281,30 @@ export default class BillingsController {
   async addBillingItem({ request, inertia }: HttpContext) {
     const data = await request.validateUsing(validator.BillingItemCreate)
     const billingSelected = await Billings.findByOrFail('id', data.billingsId)
-    // const product = await Product.findByOrFail('id', data.productId)
+    const product = await Product.findByOrFail('id', data.productId)
+    const { billing, products, item } = await getBillingDetails(billingSelected.id)
+    const customers = await ThirdParties.query().orderBy('created_at', 'desc')
 
+    if (product.type === ProductType.PRODUCT) {
+      const stock = await Stock.query().where('productId', data.productId).first()
+
+      if (stock) {
+        if (stock!.physicalQuantity < data.quantity) {
+          return inertia.render(
+            'billings/details/index',
+            {
+              billing,
+              products,
+              item,
+              customers,
+              csrfToken: request.csrfToken,
+              message: 'Stock insuffisant pour ce produit',
+            },
+            { title: 'Détails' }
+          )
+        }
+      }
+    }
     const vatRate = data?.tva ? Number(data.tva) / 100 : 0
     const discountRate = data?.discount ? Number(data.discount) / 100 : 0
 
@@ -300,12 +342,9 @@ export default class BillingsController {
     billingSelected.remainingPrice = Number.parseFloat(amountIncludingVat)
     await billingSelected.save()
 
-    const { billing, products, item } = await getBillingDetails(billingSelected.id)
-    const customers = await ThirdParties.query().orderBy('created_at', 'desc')
-
     return inertia.render(
       'billings/details/index',
-      { billing, products, item, customers, csrfToken: request.csrfToken },
+      { billing, products, item, customers, csrfToken: request.csrfToken, message: '' },
       { title: 'Détails' }
     )
   }

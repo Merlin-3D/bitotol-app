@@ -1,4 +1,4 @@
-import { useForm } from '@inertiajs/react'
+import { router, useForm } from '@inertiajs/react'
 import { isEmpty, isNil } from 'lodash'
 import { useState } from 'react'
 import { toast } from 'react-toastify'
@@ -65,11 +65,16 @@ export default function AddProductDialog({
     }
     post(`/dashboard/billings/${billing.id}`, {
       preserveScroll: true,
-      onSuccess: () => {
-        reset()
-        setProduct(null)
-        toast.success('Opération réussie.')
-        handleOpenModal()
+      onSuccess: (data: any) => {
+        if (data.props.message) {
+          toast.warning(data.props.message)
+        } else {
+          reset()
+          setProduct(null)
+          toast.success('Opération réussie.')
+          handleOpenModal()
+          router.visit(`/dashboard/billings/${billing.id}`)
+        }
       },
     })
   }

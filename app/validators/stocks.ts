@@ -13,7 +13,6 @@ export const warehouseStore = vine.compile(
 export const productStore = vine.compile(
   vine.object({
     name: vine.string(),
-    active: vine.boolean(),
     type: vine.enum(ProductType).optional(),
     description: vine.string().nullable().optional(),
     warehousesId: vine.string().nullable().optional(),
