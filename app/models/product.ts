@@ -64,15 +64,16 @@ export default class Product extends BaseModel {
   static async generateClientCode(product: Product) {
     if (!product.reference) {
       const currentDate = new Date()
-      const year = currentDate.getFullYear().toString().slice(-2) // les deux derniers chiffres de l'année
-      const month = (currentDate.getMonth() + 1).toString().padStart(2, '0') // mois avec deux chiffres
+      const year = DateTime.now().year.toString().slice(-2) // Get last 2 digits of the year
+      const month = DateTime.now().toFormat('MM') // Get month in MM format
+      const todayDate = `${month}${year}` // Format month and year (MMYY)
 
       const seconds = currentDate.getMilliseconds().toString().padStart(4, '0')
       const existingCustomerCount = seconds
 
-      const customerNumber = existingCustomerCount.toString().padStart(2, '0')
+      const customerNumber = existingCustomerCount.toString().padStart(4, '0')
 
-      product.reference = `${product.type === 'P' ? 'P' : 'S'}/${year}${month}B${customerNumber}`
+      product.reference = `${product.type === 'P' ? 'P' : 'S'}/${todayDate}-${customerNumber}`
     }
   }
 }

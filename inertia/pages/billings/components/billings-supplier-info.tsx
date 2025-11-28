@@ -39,6 +39,12 @@ interface ErrorFieldsReglement {
   paymentDate?: boolean
 }
 
+interface ErrorFieldsPayment {
+  amount?: boolean
+  libelle?: boolean
+  date?: boolean
+}
+
 interface BillingsSupplierInfoPorps {
   billing: BillingResponse
   products: ProductResponse[]
@@ -90,7 +96,10 @@ export default function BillingsSupplierInfo({
   const [libelle, setLibelle] = useState<string | null>()
   const [billingDate, setBillingDate] = useState<string | null>()
   const [fieldErrorReglement, setFieldErrorReglement] = useState<ErrorFieldsReglement>()
+  const [fieldErrorPayment, setFieldErrorPayment] = useState<ErrorFieldsPayment>()
   const [openDetailDialog, setOpenDetailDialog] = useState(false)
+  const [refundAmount, setRefundAmount] = useState<string>('')
+  const [fieldErrorRefundAmount, setFieldErrorRefundAmount] = useState<boolean>(false)
 
   const fieldErrorReglementValidate = {
     amount: paymentAmount,
@@ -299,7 +308,7 @@ export default function BillingsSupplierInfo({
       const remaining = Number(billing.remainingPrice)
 
       if (amount > remaining) {
-        alert('Le montant du paiement dépasse le montant restant à payer.')
+        alert('Le montant du règlement dépasse le montant restant à payer.')
         return
       }
 
@@ -322,8 +331,13 @@ export default function BillingsSupplierInfo({
   }
 
   const handleConfirmDeletePayment = async () => {
-    await webInterface.delete(`/dashboard/billing-payment/${paymentId}/remove`)
-    router.visit(`/dashboard/billings/${billing.id}`)
+    const response = await webInterface.delete(`/dashboard/billing-payment/${paymentId}/remove`)
+    if (response.id) {
+      toast.success('Paiement supprimé avec succès')
+      router.visit(`/dashboard/billings/${billing.id}`)
+    } else {
+      throw new Error('Réponse invalide du serveur')
+    }
   }
 
   const handleConfirmBillingStatus = async () => {
@@ -354,17 +368,117 @@ export default function BillingsSupplierInfo({
     router.visit(`/dashboard/billings/${billing.id}`)
   }
 
+  const fieldErrorPaaymentValidate =
+    refundType === 'partial'
+      ? {
+          amount: refundAmount,
+          libelle: libelle,
+          date: billingDate,
+        }
+      : {
+          libelle: libelle,
+          date: billingDate,
+        }
+
+  const validateFields2 = () => {
+    const errors: ErrorFieldsPayment & { refundAmount?: boolean } = {}
+
+    // Validation de base
+    Object.keys(fieldErrorPaaymentValidate).forEach((key) => {
+      if (isEmpty((fieldErrorPaaymentValidate as any)[key])) {
+        errors[key as keyof ErrorFieldsPayment] = true
+      }
+    })
+
+    // Validation spécifique pour refundAmount
+    if (refundType === 'partial') {
+      if (isEmpty(refundAmount)) {
+        errors.refundAmount = true
+      } else {
+        const amount = Number(refundAmount)
+        const maxAmount = getMaxRefundableAmount()
+
+        if (amount <= 0) {
+          errors.refundAmount = true
+        } else if (amount > maxAmount) {
+          errors.refundAmount = true
+          toast.error(`Le montant ne peut pas dépasser ${formatNumber(maxAmount)} FCFA`)
+        }
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrorPayment(errors)
+      setFieldErrorRefundAmount(!!errors.refundAmount)
+      return false
+    }
+
+    setFieldErrorPayment({})
+    setFieldErrorRefundAmount(false)
+    return true
+  }
+
+  const getRefundRatio = (): number => {
+    if (refundType === 'full') return 1
+    if (!refundAmount || getMaxRefundableAmount() === 0) return 0
+    return Number(refundAmount) / getMaxRefundableAmount()
+  }
+
   const handleConfirm = async () => {
+    if (!validateFields2()) {
+      return
+    }
+
+    const refundRatio = getRefundRatio()
+
+    // Calcul des montants pour l'avoir
+    let amountIncludingVat: string
+    let amountExcludingVat: string
+    let vatAmount: string
+
+    if (refundType === 'full') {
+      // Remboursement complet - prendre tous les montants de la facture originale
+      amountIncludingVat = billing.amountIncludingVat?.toString() || '0'
+      amountExcludingVat = billing.amountExcludingVat?.toString() || '0'
+      vatAmount = billing.vatAmount?.toString() || '0'
+    } else {
+      // Remboursement partiel - calculer proportionnellement
+      amountIncludingVat = refundAmount
+      amountExcludingVat = (Number(billing.amountExcludingVat || 0) * refundRatio).toFixed(2)
+      vatAmount = (Number(billing.vatAmount || 0) * refundRatio).toFixed(2)
+    }
+
+    // Préparer les items de facturation proportionnels
+    const billingItems = _.map(item, (item) => {
+      if (refundType === 'full') {
+        // Remboursement complet - reprendre tous les items
+        return _.pick(item, ['productId', 'quantity', 'price', 'total', 'discount', 'tva'])
+      } else {
+        // Remboursement partiel - calculer proportionnellement
+        const itemRatio = Number(item.total) / Number(billing.amountIncludingVat || 1)
+        const itemRefundAmount = Number(amountIncludingVat) * itemRatio
+
+        return {
+          productId: item.productId,
+          quantity: item.quantity, // Vous pourriez ajuster la quantité aussi si nécessaire
+          price: item.price,
+          total: itemRefundAmount.toFixed(2),
+          discount: item.discount,
+          tva: '',
+        }
+      }
+    })
+
     const body = {
       parentBillingId: billing.id,
       type: billingType[2].value,
       status: BillingStatus.DRAFT,
-      isFullRefund: refundType === 'full' ? true : false,
+      isFullRefund: refundType === 'full',
       description: libelle,
       billingDate,
-      amountIncludingVat: billing.amountIncludingVat?.toString(),
-      amountExcludingVat: billing.amountExcludingVat?.toString(),
-      vatAmount: billing.vatAmount?.toString(),
+      amountIncludingVat,
+      amountExcludingVat,
+      vatAmount,
       ..._.omit(billing, [
         'files',
         'parentBilling',
@@ -382,17 +496,23 @@ export default function BillingsSupplierInfo({
         'amountIncludingVat',
         'amountExcludingVat',
         'vatAmount',
+        'allocatedPrice',
+        'remainingPrice',
       ]),
-      billingItem: _.map(item, (item) =>
-        _.pick(item, ['productId', 'quantity', 'price', 'total', 'discount', 'tva'])
-      ),
+      billingItem: billingItems,
     }
-    const response = await webInterface.post(`/dashboard/billings/credit`, body)
-    router.visit(`/dashboard/billings/${response.id}`)
+
+    try {
+      const response = await webInterface.post(`/dashboard/billings-credit`, body)
+      toast.success('Avoir créé avec succès')
+      router.visit(`/dashboard/billings/${response.id}`)
+    } catch (error) {
+      toast.error(`Erreur lors de la création de l'avoir: ${error}`)
+    }
   }
 
-  const handleDowloadDoc = () => {
-    setOpenDetailDialog(true)
+  const getMaxRefundableAmount = () => {
+    return Number(billing.remainingPrice) || Number(billing.amountIncludingVat) || 0
   }
 
   const handlePrint = () => {
@@ -496,6 +616,17 @@ export default function BillingsSupplierInfo({
     printWindow.document.close()
   }
 
+  const handleRefundTypeChange = (type: 'partial' | 'full') => {
+    setRefundType(type)
+    if (type === 'full') {
+      // Pré-remplir avec le montant maximum pour un remboursement complet
+      setRefundAmount(getMaxRefundableAmount().toString())
+    } else {
+      // Réinitialiser ou garder la valeur actuelle pour partiel
+      setRefundAmount('')
+    }
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <BillingsSupplierHeader billing={billing} />
@@ -533,15 +664,13 @@ export default function BillingsSupplierInfo({
             <hr />
             <div className="flex items-center justify-start gap-4">
               <p className="text-sm text-left">
-                {billing.status !== BillingStatus.DRAFT && (
-                  <Button
-                    color="warning"
-                    label={'Imprimer la facture'}
-                    onClick={() => {
-                      setOpenDetailDialog(true)
-                    }}
-                  />
-                )}
+                <Button
+                  color="warning"
+                  label={'Imprimer la facture'}
+                  onClick={() => {
+                    setOpenDetailDialog(true)
+                  }}
+                />
               </p>
             </div>
 
@@ -585,7 +714,7 @@ export default function BillingsSupplierInfo({
                 </th>
                 <th
                   scope="col"
-                  className="py-3.5 pl-4 w-32 pr-3 text-left text-white text-sm font-semibold sm:pl-3"
+                  className="py-3.5 pl-4 w-52 pr-3 text-left text-white text-sm font-semibold sm:pl-3"
                 >
                   Date du règlement
                 </th>
@@ -728,7 +857,8 @@ export default function BillingsSupplierInfo({
         <div className="flex flex-row justify-end gap-2 items-center">
           {isNil(billing?.isFullRefund) &&
             (billing.status === BillingStatus.VALIDATE ||
-              billing.status === BillingStatus.BEGIN) && (
+              billing.status === BillingStatus.BEGIN ||
+              billing.status === BillingStatus.PAID_PARTIALLY) && (
               <Button
                 color="info"
                 label={'Saisir Règlement'}
@@ -744,13 +874,13 @@ export default function BillingsSupplierInfo({
             />
           )}
 
-          {isNil(billing?.isFullRefund) && billing.status === BillingStatus.BEGIN && (
+          {/* {isNil(billing?.isFullRefund) && billing.status === BillingStatus.BEGIN && (
             <Button
               color="secondary"
               label={"Classer 'PAYÉE PARTIELLEMENT'"}
               onClick={() => setOpenBillingDialogStatus(true)}
             />
-          )}
+          )} */}
 
           {item.length > 0 && billing.status === BillingStatus.DRAFT && (
             <Button
@@ -784,9 +914,6 @@ export default function BillingsSupplierInfo({
               onClick={() => setOpenConfirm(true)}
               disabled={billing.status !== BillingStatus.DRAFT}
             />
-          )}
-          {billing.status !== BillingStatus.DRAFT && billing.status !== BillingStatus.VALIDATE && (
-            <Button label="Générer" onClick={() => handleDowloadDoc()} color="warning" size="xs" />
           )}
         </div>
       </div>
@@ -1113,7 +1240,10 @@ export default function BillingsSupplierInfo({
             <Switch
               as="button"
               checked={refundType === 'partial'}
-              onChange={() => setRefundType('partial')}
+              onChange={() => {
+                handleRefundTypeChange('partial')
+                setRefundType('partial')
+              }}
               className={`${
                 refundType === 'partial' ? 'bg-green-600' : 'bg-gray-200'
               } relative inline-flex flex-shrink-0 h-6 transition-colors duration-200 ease-in-out border-2 border-transparent rounded-full cursor-pointer w-11 focus:outline-none focus:shadow-outline`}
@@ -1137,7 +1267,10 @@ export default function BillingsSupplierInfo({
             <Switch
               as="button"
               checked={refundType === 'full'}
-              onChange={() => setRefundType('full')}
+              onChange={() => {
+                setRefundType('full')
+                handleRefundTypeChange('full')
+              }}
               className={`${
                 refundType === 'full' ? 'bg-green-600' : 'bg-gray-200'
               } relative inline-flex flex-shrink-0 h-6 transition-colors duration-200 ease-in-out border-2 border-transparent rounded-full cursor-pointer w-11 focus:outline-none focus:shadow-outline`}
@@ -1151,6 +1284,65 @@ export default function BillingsSupplierInfo({
               )}
             </Switch>
           </div>
+          {refundType === 'partial' && (
+            <div className="flex items-center">
+              <div className="flex justify-start">
+                <label className="block w-52 text-base font-normal leading-6 text-gray-text">
+                  Montant du remboursement
+                  <span className="text-xs text-red-600">*</span>
+                </label>
+              </div>
+              <div className="flex flex-col w-[500px]">
+                <Input
+                  type="number"
+                  placeholder={`Montant maximum: ${formatNumber(getMaxRefundableAmount())} FCFA`}
+                  value={refundAmount}
+                  disabled={processing}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    setRefundAmount(value)
+
+                    // Validation en temps réel
+                    const amount = Number(value)
+                    const maxAmount = getMaxRefundableAmount()
+                    if (amount > maxAmount) {
+                      setFieldErrorRefundAmount(true)
+                    } else {
+                      setFieldErrorRefundAmount(false)
+                    }
+                  }}
+                  error={fieldErrorRefundAmount}
+                />
+                {fieldErrorRefundAmount && (
+                  <p className="text-red-500 text-sm mt-1">
+                    Le montant ne peut pas dépasser {formatNumber(getMaxRefundableAmount())} FCFA
+                  </p>
+                )}
+                <p className="text-gray-500 text-sm mt-1">
+                  Montant restant à rembourser: {formatNumber(getMaxRefundableAmount())} FCFA
+                </p>
+              </div>
+            </div>
+          )}
+
+          {refundType === 'full' && (
+            <div className="flex items-center">
+              <div className="flex justify-start">
+                <label className="block w-52 text-base font-normal leading-6 text-gray-text">
+                  Montant du remboursement
+                </label>
+              </div>
+              <div className="w-[500px]">
+                <p className="text-green-600 font-semibold">
+                  {formatNumber(getMaxRefundableAmount())} FCFA (Remboursement complet)
+                </p>
+                <p className="text-gray-500 text-sm mt-1">
+                  La facture sera intégralement remboursée
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center">
             <div className="flex justify-start">
               <label className="block w-52 text-base font-normal leading-6 text-gray-text">
@@ -1162,6 +1354,7 @@ export default function BillingsSupplierInfo({
               placeholder="Quel est le motif?"
               onChange={(e) => setLibelle(e.target.value)}
               className="w-[500px]"
+              error={fieldErrorPayment?.libelle}
             />
           </div>
           <div className="flex items-center">
@@ -1177,6 +1370,7 @@ export default function BillingsSupplierInfo({
               disabled={processing}
               onChange={(e) => setBillingDate(e.target.value)}
               className="w-[500px]"
+              error={fieldErrorPayment?.date}
             />
           </div>
         </div>

@@ -25,7 +25,7 @@ export default function BillingsCustormerHeader({ billing }: BillingsCustormerHe
               </h1>
               <div className="flex items-center gap-2">
                 {!isEmpty(billing.childrenBillings) && (
-                  <span className="text-xs">
+                  <span className="text-xs bg-blue-200 font-medium rounded-md px-1 text-blue-600">
                     Cette facture a déjà fait l&apos;objet d&apos;avoirs
                   </span>
                 )}

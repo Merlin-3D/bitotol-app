@@ -88,8 +88,8 @@ export const BillingsCreditStore = vine.compile(
     amountIncludingVat: vine.string().nullable(),
     amountExcludingVat: vine.string().nullable(),
     vatAmount: vine.string().nullable(),
-    allocatedPrice: vine.number().nullable(),
-    remainingPrice: vine.number().nullable(),
+    // allocatedPrice: vine.number().nullable(),
+    // remainingPrice: vine.number().nullable(),
     userId: vine.string(),
     parentBillingId: vine.string().optional(),
     billingItem: vine.array(

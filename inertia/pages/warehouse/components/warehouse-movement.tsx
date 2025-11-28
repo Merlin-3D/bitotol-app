@@ -50,11 +50,6 @@ export default function WarehouseMovement({ warehouse, movements }: WarehouseInf
       render: (data) => <span>{formatDateTime(data.movementDate, true)}</span>,
     },
     {
-      Header: 'Origine',
-      accessor: '#',
-      sortable: false,
-    },
-    {
       Header: 'Quantité',
       accessor: 'quantity',
       sortable: false,

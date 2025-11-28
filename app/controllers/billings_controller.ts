@@ -34,28 +34,67 @@ export default class BillingsController {
     return response.redirect(`/dashboard/billings/${billing.id}`)
   }
 
+  // Dans votre BillingsController
   async createCredit({ request, response }: HttpContext) {
-    // Validation des données entrantes
-    const data = await request.validateUsing(validator.BillingsCreditStore)
+    try {
+      const data = await request.validateUsing(validator.BillingsCreditStore)
 
-    // Création de la facture d'avoir
-    const billing = await new Billings().merge(_.omit(data, 'billingItem')).save()
+      // Vérifier que la facture parent existe
+      const parentBilling = await Billings.findOrFail(data.parentBillingId)
 
-    // Gestion des items de facturation pour l'avoir
-    for (const item of data.billingItem) {
-      // Création des items dans la facture d'avoir
-      await BillingItem.create({
-        billingsId: billing.id,
-        productId: item.productId,
-        quantity: item.quantity,
-        price: item.price,
-        total: item.total,
-        discount: item.discount,
-        tva: item.tva,
+      if (!data.isFullRefund) {
+        const refundAmount = Number(data.amountIncludingVat)
+        const maxRefundable = Number(parentBilling.remainingPrice)
+
+        if (refundAmount > maxRefundable) {
+          return response.status(400).send({
+            code: 'INVALID_REFUND_AMOUNT',
+            message: `Le montant du remboursement ne peut pas dépasser ${maxRefundable} FCFA`,
+          })
+        }
+      }
+
+      // Calculer le code de l'avoir
+      const creditCode = `AVOIR-${parentBilling.code}-${DateTime.now().toFormat('yyyyMMdd-HHmmss')}`
+
+      // Création de la facture d'avoir
+      const billing = await new Billings()
+        .merge({
+          ..._.omit(data, ['billingItem']),
+          code: creditCode,
+          // Réinitialiser les montants de paiement
+          allocatedPrice: 0,
+          remainingPrice: data.amountIncludingVat ? Number(data.amountIncludingVat) : 0,
+        })
+        .save()
+
+      // Gestion des items de facturation pour l'avoir
+      for (const item of data.billingItem) {
+        await BillingItem.create({
+          billingsId: billing.id,
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.price,
+          total: item.total,
+          discount: item.discount,
+          tva: item.tva,
+        })
+      }
+
+      // Mettre à jour le statut de la facture parent si remboursement complet
+      if (data.isFullRefund) {
+        parentBilling.status = BillingStatus.CREDIT_NOTE
+        await parentBilling.save()
+      }
+
+      return response.send(billing)
+    } catch (error) {
+      console.log(error)
+      return response.status(500).send({
+        code: 'CREDIT_CREATION_ERROR',
+        message: "Erreur lors de la création de l'avoir",
       })
     }
-    // Réponse avec les détails de la facture d'avoir
-    return response.send(billing)
   }
 
   async validateCredit({ params, request, response }: HttpContext) {
@@ -67,53 +106,60 @@ export default class BillingsController {
       const currentBilling = await Billings.findOrFail(id)
 
       if (currentBilling.isFullRefund) {
-        // Le prix restant de la facture parent est mis à 0
-        parentBilling.allocatedPrice = parentBilling.remainingPrice
+        // Remboursement complet
+        parentBilling.allocatedPrice = Number(parentBilling.amountIncludingVat)
         parentBilling.remainingPrice = 0
-        parentBilling.status = BillingStatus.PAID // Facture totalement payée/remboursée
+        parentBilling.status = BillingStatus.PAID
+
         currentBilling.status = BillingStatus.CREDIT_BACK
-        currentBilling.allocatedPrice = currentBilling.remainingPrice
+        currentBilling.allocatedPrice = Number(currentBilling.amountIncludingVat)
         currentBilling.remainingPrice = 0
       } else {
-        // Cas 2 : Remboursement partiel
+        // Remboursement partiel
+        const creditAmount = Number(currentBilling.amountIncludingVat)
 
-        currentBilling.allocatedPrice = currentBilling.remainingPrice
+        currentBilling.allocatedPrice = creditAmount
         currentBilling.remainingPrice = 0
-        currentBilling.status = BillingStatus.CREDIT_BACK // Avoir remboursée
-        // Mise à jour du montant restant de la facture parent en fonction du montant total remboursé
-        parentBilling.allocatedPrice! += currentBilling.allocatedPrice!
+        currentBilling.status = BillingStatus.CREDIT_BACK
 
-        parentBilling.remainingPrice! -= currentBilling.allocatedPrice!
-        // Si tout est remboursé, statut payé, sinon partiellement payé
-        if (parentBilling.remainingPrice! <= 0) {
+        // Mise à jour de la facture parent
+        parentBilling.allocatedPrice = Number(parentBilling.allocatedPrice) + creditAmount
+        parentBilling.remainingPrice = Math.max(
+          0,
+          Number(parentBilling.remainingPrice) - creditAmount
+        )
+
+        // Mettre à jour le statut
+        if (parentBilling.remainingPrice <= 0) {
           parentBilling.remainingPrice = 0
-          parentBilling.status = BillingStatus.PAID // Facture complètement remboursée
+          parentBilling.status = BillingStatus.PAID
         } else {
-          parentBilling.status = BillingStatus.PAID_PARTIALLY // Facture partiellement remboursée
+          parentBilling.status = BillingStatus.PAID_PARTIALLY
         }
       }
+
       await parentBilling.save()
       await currentBilling.save()
 
+      // Charger les relations pour la réponse
       const billing = await Billings.query()
         .where('id', id)
-        //@ts-ignore
         .preload('user')
-        //@ts-ignore
         .preload('thirdParties')
         .preload('billingItem')
         .preload('childrenBillings')
-        //@ts-ignore
         .preload('parentBilling')
         .preload('billingPayments')
-        .first()
+        .firstOrFail()
 
       return response.send(billing)
     } catch (error) {
-      console.log(error)
+      console.error('Validation credit error:', error)
       return response.status(error.status || 500).send({
-        code: error.code,
-        message: error.messages || 'Une erreur est survenue lors du traitement du remboursement.',
+        code: error.code || 'VALIDATION_ERROR',
+        message:
+          error.messages?.errors?.[0]?.message ||
+          'Une erreur est survenue lors du traitement du remboursement.',
       })
     }
   }

@@ -1,4 +1,4 @@
-import { Link, useForm } from '@inertiajs/react'
+import { Link, router, useForm } from '@inertiajs/react'
 import { Column, DataTable } from '~/components/data-table'
 import Spinner from '~/components/spinner'
 import BoxOpenIcon from '~/components/icons/box-open.icon'
@@ -9,6 +9,7 @@ import AdminLayout from '../layouts/layout'
 import Button from '~/components/button'
 import { useState } from 'react'
 import CreateWarehouse from './components/create-warehouse'
+import { EyeIcon } from '~/components/icons'
 
 interface WarehouseProps {
   warehouses: WarehaouseResponse[]
@@ -60,17 +61,21 @@ export default function Warehouse({ warehouses }: WarehouseProps) {
       render: (data) => <span>{formatDateTime(data.createdAt!)}</span>,
       sortable: true,
     },
-
-    // {
-    //   Header: "Action",
-    //   accessor: "available",
-    //   render: (data) => (
-    //     <div onClick={() => handleDetail(data)}>
-    //       <EyeIcon className="h-6 w-6 text-blue-600 cursor-pointer bg-blue-50 hover:bg-blue-100 p-1 rounded-full" />
-    //     </div>
-    //   ),
-    //   sortable: false,
-    // },
+    {
+      Header: '',
+      accessor: '#',
+      sortable: false,
+      render: (data) => (
+        <div className="flex items-center justify-end gap-2 pr-2">
+          <Button
+            label=""
+            color="info"
+            onClick={() => router.visit(`/dashboard/warehouses/${data.id}`)}
+            icon={<EyeIcon className="h-4 w-4" />}
+          ></Button>
+        </div>
+      ),
+    },
   ]
 
   return (

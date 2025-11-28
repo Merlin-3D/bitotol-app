@@ -146,6 +146,16 @@ export default function Billings({ customers, billings }: BillingsProps) {
       ),
     },
     {
+      Header: 'Reste à payer',
+      accessor: 'amountExcludingVat',
+      sortable: false,
+      render: (data) => (
+        <div className="text-right">
+          <span>{`${formatNumber(Number(data.remainingPrice))} FCFA`}</span>
+        </div>
+      ),
+    },
+    {
       Header: 'État',
       accessor: 'status',
       sortable: false,

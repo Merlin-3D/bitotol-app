@@ -88,6 +88,7 @@ export enum BillingStatus {
   PAID = 'Paid', //
   PAID_PARTIALLY = 'Paid Partially', //
   CREDIT_BACK = 'Credit Back',
+  CREDIT_NOTE = 'Credit await',
 }
 
 export const isExpired = (inputDate: string, daysToAdd: number) => {
@@ -141,6 +142,11 @@ export const billingStatus = [
     name: 'Avoir remboursée',
     status: BillingStatus.CREDIT_BACK,
     type: 'teal',
+  },
+  {
+    name: 'Avoir en attente',
+    status: BillingStatus.CREDIT_NOTE,
+    type: 'warning',
   },
 ]
 

@@ -49,7 +49,7 @@ router
     router.put('billings-credit/:id/status', [BillingsController, 'validateCredit'])
     router.put('billings/:id/status', [BillingsController, 'update'])
     router.post('billing-payment', [BillingsController, 'addPayment'])
-    router.post('billings/credit', [BillingsController, 'createCredit'])
+    router.post('billings-credit', [BillingsController, 'createCredit'])
     router.delete('billing-payment/:id/remove', [BillingsController, 'removePayment'])
     router.put('billings/:id', [BillingsController, 'edit'])
 

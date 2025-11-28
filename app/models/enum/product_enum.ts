@@ -70,6 +70,7 @@ export enum BillingStatus {
   PAID_PARTIALLY = 'Paid Partially', //
   PAID = 'Paid', //
   CREDIT_BACK = 'Credit Back',
+  CREDIT_NOTE = 'Credit Note',
 }
 
 export enum BillingType {

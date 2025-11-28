@@ -23,10 +23,18 @@ export default class WebController {
     const totalBillings = await Billings.query().count('* as total')
     const totalWarehouses = await Warehouses.query().count('* as total')
 
-    // Calculer le montant total des factures (exclure Draft et Abandoned)
+    // Calculer le montant total des factures
     const billings = await Billings.query()
+      .whereIn('status', [
+        BillingStatus.VALIDATE, // Factures dues
+        BillingStatus.BEGIN, // Paiements en cours
+        BillingStatus.PAID_PARTIALLY, // Partiellement payées
+        BillingStatus.PAID, // Complètement payées
+        BillingStatus.CREDIT_BACK, // Avoir utilisés (pour voir l'impact des remboursements)
+      ])
       .whereNot('status', BillingStatus.DRAFT)
       .whereNot('status', BillingStatus.ABANDONED)
+      .whereNot('status', BillingStatus.CREDIT_BACK)
     const totalBillingAmount = billings.reduce((sum, billing) => {
       const amount = billing.amountIncludingVat ? Number.parseFloat(billing.amountIncludingVat) : 0
       return sum + amount

@@ -104,7 +104,7 @@ export default function Products({ products, warehouses }: ProductsProps) {
       accessor: 'name',
       sortable: false,
       render: (data) => (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-end gap-2">
           <span>
             {!isNil(data.sellingPrice) && `${formatNumber(data.sellingPrice as number)} FCFA`}
           </span>
