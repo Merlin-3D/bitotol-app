@@ -11,6 +11,7 @@ import CreateInvoice from './components/create-billing'
 import ThirdParties from '#models/third_parties'
 import Input from '~/components/input'
 import SelectMenu from '~/components/select-menu'
+import AutoComplete from '~/components/auto-complete'
 
 interface BillingsProps {
   billings: BillingResponse[]
@@ -243,13 +244,13 @@ export default function Billings({ customers, billings }: BillingsProps) {
               {/* Filtre par client */}
               <div>
                 <label className="block text-sm font-medium mb-1">Client</label>
-                <SelectMenu
-                  label="Sélectionner un client"
-                  selected={customers.find((c) => c.id === filters.customerId) || null}
+                <AutoComplete<ThirdParties>
                   data={customers}
+                  selected={customers.find((c) => c.id === filters.customerId)!}
                   getLabel={(item) => item?.name || ''}
-                  getKey={(item) => item?.id || ''}
+                  getKey={(value) => `${value!.id!}`}
                   onSelected={(item) => setFilters({ ...filters, customerId: item?.id || null })}
+                  label="Sélectionner un client"
                 />
               </div>
 

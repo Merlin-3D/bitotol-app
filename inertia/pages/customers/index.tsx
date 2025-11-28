@@ -40,10 +40,14 @@ export default function Customers({ customers }: CustomersProps) {
 
   const handleResetSearch = () => {
     setSearch('')
-    router.get('/dashboard/customers', {}, {
-      preserveState: true,
-      preserveScroll: true,
-    })
+    router.get(
+      '/dashboard/customers',
+      {},
+      {
+        preserveState: true,
+        preserveScroll: true,
+      }
+    )
   }
 
   const columnsMovement: Column<any>[] = [
@@ -68,13 +72,13 @@ export default function Customers({ customers }: CustomersProps) {
       sortable: false,
     },
     {
-      Header: 'Description',
-      accessor: 'description',
-    },
-    {
       Header: 'Adresse',
       accessor: 'address',
       sortable: false,
+    },
+    {
+      Header: 'Description',
+      accessor: 'description',
     },
     {
       Header: '',
@@ -153,7 +157,7 @@ export default function Customers({ customers }: CustomersProps) {
           </div>
         </div>
         <hr />
-        
+
         {/* Champ de recherche */}
         <div className="flex items-center gap-2">
           <div className="flex-1">
@@ -171,17 +175,9 @@ export default function Customers({ customers }: CustomersProps) {
             />
           </div>
           <div className="flex items-end gap-2">
-            <Button
-              label="Rechercher"
-              onClick={handleSearch}
-              color="warning"
-            />
+            <Button label="Rechercher" onClick={handleSearch} color="warning" />
             {search && (
-              <Button
-                label="Réinitialiser"
-                onClick={handleResetSearch}
-                color="secondary"
-              />
+              <Button label="Réinitialiser" onClick={handleResetSearch} color="secondary" />
             )}
           </div>
         </div>
