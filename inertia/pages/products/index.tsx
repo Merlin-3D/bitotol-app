@@ -29,6 +29,8 @@ interface ProductFilters {
   type: string | null
   warehouseId: string | null
   search: string | null
+  expirationFrom: string | null
+  expirationTo: string | null
 }
 
 export default function Products({ products, warehouses }: ProductsProps) {
@@ -38,6 +40,8 @@ export default function Products({ products, warehouses }: ProductsProps) {
     type: null,
     warehouseId: null,
     search: null,
+    expirationFrom: null,
+    expirationTo: null,
   })
 
   // Récupérer les filtres depuis l'URL au chargement
@@ -47,6 +51,8 @@ export default function Products({ products, warehouses }: ProductsProps) {
       type: urlParams.get('type') || null,
       warehouseId: urlParams.get('warehouseId') || null,
       search: urlParams.get('search') || null,
+      expirationFrom: urlParams.get('expirationFrom') || null,
+      expirationTo: urlParams.get('expirationTo') || null,
     })
   }, [])
 
@@ -56,6 +62,8 @@ export default function Products({ products, warehouses }: ProductsProps) {
     if (filters.type) params.type = filters.type
     if (filters.warehouseId) params.warehouseId = filters.warehouseId
     if (filters.search) params.search = filters.search
+    if (filters.expirationFrom) params.expirationFrom = filters.expirationFrom
+    if (filters.expirationTo) params.expirationTo = filters.expirationTo
 
     router.get('/dashboard/products', params, {
       preserveState: true,
@@ -68,6 +76,8 @@ export default function Products({ products, warehouses }: ProductsProps) {
       type: null,
       warehouseId: null,
       search: null,
+      expirationFrom: null,
+      expirationTo: null,
     }
     setFilters(emptyFilters)
     router.get('/dashboard/products', {}, {
@@ -193,12 +203,12 @@ export default function Products({ products, warehouses }: ProductsProps) {
   ]
 
   return (
-    <AdminLayout title="Produits | Services">
+    <AdminLayout title="Produits & Services">
       <div className="flex flex-col gap-3 bg-white px-4 h-full py-6 rounded-2xl">
         <div className="flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
             <ProductIcon className="h-6 w-6" />
-            <span>Produits | Services ({products.length})</span>
+            <span>Produits & Services ({products.length})</span>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -221,6 +231,30 @@ export default function Products({ products, warehouses }: ProductsProps) {
         {showFilters && (
           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Filtre par date d'expiration (début) */}
+              <div>
+                <Input
+                  label="Expiration à partir de"
+                  type="date"
+                  value={filters.expirationFrom || ''}
+                  onChange={(e) =>
+                    setFilters({ ...filters, expirationFrom: e.target.value || null })
+                  }
+                />
+              </div>
+
+              {/* Filtre par date d'expiration (fin) */}
+              <div>
+                <Input
+                  label="Expiration jusqu'à"
+                  type="date"
+                  value={filters.expirationTo || ''}
+                  onChange={(e) =>
+                    setFilters({ ...filters, expirationTo: e.target.value || null })
+                  }
+                />
+              </div>
+
               {/* Filtre par type */}
               <div>
                 <label className="block text-sm font-medium mb-1">Type</label>

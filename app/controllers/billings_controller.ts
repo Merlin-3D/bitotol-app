@@ -665,6 +665,7 @@ export default class BillingsController {
       const dateTo = request.qs().dateTo
       const amountMin = request.qs().amountMin
       const amountMax = request.qs().amountMax
+      const reference = request.qs().reference
 
       if (status) {
         query.where('status', status)
@@ -692,6 +693,10 @@ export default class BillingsController {
 
       if (amountMax) {
         query.where('amountIncludingVat', '<=', amountMax)
+      }
+
+      if (reference) {
+        query.where('code', 'ilike', `%${reference}%`)
       }
 
       const billings = await query.orderBy('created_at', 'desc')
@@ -738,6 +743,7 @@ export default class BillingsController {
         if (dateTo) filterInfo.push(`Date fin: ${dateTo}`)
         if (amountMin) filterInfo.push(`Montant min: ${amountMin} FCFA`)
         if (amountMax) filterInfo.push(`Montant max: ${amountMax} FCFA`)
+        if (reference) filterInfo.push(`Réf.: ${reference}`)
 
         if (filterInfo.length > 0) {
           doc.fontSize(10).text(`Filtres appliqués: ${filterInfo.join(', ')}`, { align: 'left' })

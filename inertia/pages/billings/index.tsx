@@ -26,6 +26,7 @@ interface Filters {
   dateTo: string | null
   amountMin: string | null
   amountMax: string | null
+  reference: string | null
 }
 
 export default function Billings({ customers, billings }: BillingsProps) {
@@ -39,6 +40,7 @@ export default function Billings({ customers, billings }: BillingsProps) {
     dateTo: null,
     amountMin: null,
     amountMax: null,
+    reference: null,
   })
 
   // Récupérer les filtres depuis l'URL au chargement
@@ -52,6 +54,7 @@ export default function Billings({ customers, billings }: BillingsProps) {
       dateTo: urlParams.get('dateTo') || null,
       amountMin: urlParams.get('amountMin') || null,
       amountMax: urlParams.get('amountMax') || null,
+      reference: urlParams.get('reference') || null,
     })
   }, [])
 
@@ -65,6 +68,7 @@ export default function Billings({ customers, billings }: BillingsProps) {
     if (filters.dateTo) params.dateTo = filters.dateTo
     if (filters.amountMin) params.amountMin = filters.amountMin
     if (filters.amountMax) params.amountMax = filters.amountMax
+    if (filters.reference) params.reference = filters.reference
 
     router.get('/dashboard/billings', params, {
       preserveState: true,
@@ -81,6 +85,7 @@ export default function Billings({ customers, billings }: BillingsProps) {
       dateTo: null,
       amountMin: null,
       amountMax: null,
+      reference: null,
     }
     setFilters(emptyFilters)
     router.get(
@@ -107,6 +112,7 @@ export default function Billings({ customers, billings }: BillingsProps) {
     if (filters.dateTo) params.dateTo = filters.dateTo
     if (filters.amountMin) params.amountMin = filters.amountMin
     if (filters.amountMax) params.amountMax = filters.amountMax
+    if (filters.reference) params.reference = filters.reference
 
     const queryString = new URLSearchParams(params).toString()
     window.open(`/dashboard/billings/export-pdf?${queryString}`, '_blank')
@@ -228,6 +234,17 @@ export default function Billings({ customers, billings }: BillingsProps) {
         {showFilters && (
           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Filtre par référence */}
+              <div>
+                <Input
+                  label="Réf. facture"
+                  type="text"
+                  value={filters.reference || ''}
+                  onChange={(e) => setFilters({ ...filters, reference: e.target.value || null })}
+                  placeholder="EX: FAC/0125"
+                />
+              </div>
+
               {/* Filtre par statut */}
               <div>
                 <label className="block text-sm font-medium mb-1">Statut</label>
