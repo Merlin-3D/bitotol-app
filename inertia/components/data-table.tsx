@@ -37,7 +37,7 @@ interface DataTableProps<T> {
 export function DataTable<T>({
   columns,
   data,
-  itemsPerPage = 10,
+  itemsPerPage = 20,
   withPaginate,
   emptyMessage = 'Aucune données',
   showCheckbox = false,
