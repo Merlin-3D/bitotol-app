@@ -160,7 +160,7 @@ export default class BillingsController {
           parentBilling.remainingPrice = Math.max(0, currentRemainingPrice - creditAmount)
         } else {
           // Le remboursement dépasse le montant restant, on rembourse aussi une partie de ce qui a été payé
-          const refundFromRemaining = currentRemainingPrice
+          // const refundFromRemaining = currentRemainingPrice
           const refundFromAllocated = creditAmount - currentRemainingPrice
 
           // Le montant alloué diminue (car on rembourse une partie de ce qui a été payé)
