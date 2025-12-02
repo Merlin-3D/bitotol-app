@@ -178,8 +178,6 @@ export default class WebController {
     const type = request.qs().type
     const warehouseId = request.qs().warehouseId
     const search = request.qs().search
-    const expirationFrom = request.qs().expirationFrom
-    const expirationTo = request.qs().expirationTo
 
     if (type) {
       query.where('type', type)
@@ -193,14 +191,6 @@ export default class WebController {
       query.where((queryData) => {
         queryData.where('name', 'ilike', `%${search}%`).orWhere('reference', 'ilike', `%${search}%`)
       })
-    }
-
-    if (expirationFrom) {
-      query.where('expiredAt', '>=', expirationFrom)
-    }
-
-    if (expirationTo) {
-      query.where('expiredAt', '<=', expirationTo)
     }
 
     const productsFind = await query.orderBy('created_at', 'desc')
@@ -331,7 +321,6 @@ export default class WebController {
     const dateTo = request.qs().dateTo
     const amountMin = request.qs().amountMin
     const amountMax = request.qs().amountMax
-    const reference = request.qs().reference
 
     if (status) {
       query.where('status', status)
@@ -359,10 +348,6 @@ export default class WebController {
 
     if (amountMax) {
       query.where('amountIncludingVat', '<=', amountMax)
-    }
-
-    if (reference) {
-      query.where('code', 'ilike', `%${reference}%`)
     }
 
     const billings = await query.orderBy('created_at', 'desc')

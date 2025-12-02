@@ -216,13 +216,13 @@ export default function Products({ products, warehouses }: ProductsProps) {
               color="secondary"
               onClick={() => setShowFilters(!showFilters)}
             />
-            <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-              <Button
-                label={'Nouveau produit | service'}
-                onClick={() => {
-                  setOpenAddModal(true)
-                }}
-              />
+          <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+            <Button
+              label={'Nouveau produit | service'}
+              onClick={() => {
+                setOpenAddModal(true)
+              }}
+            />
             </div>
           </div>
         </div>

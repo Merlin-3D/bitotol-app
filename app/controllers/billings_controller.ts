@@ -42,14 +42,32 @@ export default class BillingsController {
       // Vérifier que la facture parent existe
       const parentBilling = await Billings.findOrFail(data.parentBillingId)
 
+      // Le montant remboursable maximum est le montant total de la facture
+      // Cela permet de rembourser aussi ce qui a déjà été payé
+      const maxRefundable = Number(parentBilling.amountIncludingVat || 0)
+
+      // Vérifier que la facture a un montant
+      if (maxRefundable <= 0) {
+        return response.status(400).send({
+          code: 'INVALID_REFUND_AMOUNT',
+          message: "Impossible de créer un avoir : la facture n'a pas de montant.",
+        })
+      }
+
       if (!data.isFullRefund) {
         const refundAmount = Number(data.amountIncludingVat)
-        const maxRefundable = Number(parentBilling.remainingPrice)
+
+        if (refundAmount <= 0) {
+          return response.status(400).send({
+            code: 'INVALID_REFUND_AMOUNT',
+            message: 'Le montant du remboursement doit être supérieur à 0',
+          })
+        }
 
         if (refundAmount > maxRefundable) {
           return response.status(400).send({
             code: 'INVALID_REFUND_AMOUNT',
-            message: `Le montant du remboursement ne peut pas dépasser ${maxRefundable} FCFA`,
+            message: `Le montant du remboursement (${refundAmount} FCFA) ne peut pas dépasser le montant total de la facture (${maxRefundable} FCFA)`,
           })
         }
       }
@@ -117,24 +135,51 @@ export default class BillingsController {
       } else {
         // Remboursement partiel
         const creditAmount = Number(currentBilling.amountIncludingVat)
+        const currentAllocatedPrice = Number(parentBilling.allocatedPrice || 0)
+        const currentRemainingPrice = Number(parentBilling.remainingPrice || 0)
+        const totalAmount = Number(parentBilling.amountIncludingVat || 0)
 
+        // Valider que le montant du remboursement ne dépasse pas le montant total
+        if (creditAmount > totalAmount) {
+          return response.status(400).send({
+            code: 'INVALID_REFUND_AMOUNT',
+            message: `Le montant du remboursement (${creditAmount} FCFA) dépasse le montant total de la facture (${totalAmount} FCFA)`,
+          })
+        }
+
+        // Mettre à jour l'avoir (crédit)
         currentBilling.allocatedPrice = creditAmount
         currentBilling.remainingPrice = 0
         currentBilling.status = BillingStatus.CREDIT_BACK
 
         // Mise à jour de la facture parent
-        parentBilling.allocatedPrice = Number(parentBilling.allocatedPrice) + creditAmount
-        parentBilling.remainingPrice = Math.max(
-          0,
-          Number(parentBilling.remainingPrice) - creditAmount
-        )
+        // Si le remboursement dépasse le montant restant, on rembourse aussi une partie de ce qui a été payé
+        if (creditAmount <= currentRemainingPrice) {
+          // Le remboursement ne concerne que le montant restant
+          parentBilling.allocatedPrice = currentAllocatedPrice + creditAmount
+          parentBilling.remainingPrice = Math.max(0, currentRemainingPrice - creditAmount)
+        } else {
+          // Le remboursement dépasse le montant restant, on rembourse aussi une partie de ce qui a été payé
+          const refundFromRemaining = currentRemainingPrice
+          const refundFromAllocated = creditAmount - currentRemainingPrice
 
-        // Mettre à jour le statut
+          // Le montant alloué diminue (car on rembourse une partie de ce qui a été payé)
+          parentBilling.allocatedPrice = Math.max(0, currentAllocatedPrice - refundFromAllocated)
+          // Le montant restant devient 0 (tout est remboursé)
+          parentBilling.remainingPrice = 0
+        }
+
+        // Mettre à jour le statut de la facture parent
         if (parentBilling.remainingPrice <= 0) {
+          // Si tout est remboursé, la facture est considérée comme payée
           parentBilling.remainingPrice = 0
           parentBilling.status = BillingStatus.PAID
-        } else {
+        } else if (parentBilling.allocatedPrice > 0) {
+          // Si une partie a été payée/remboursée, statut partiellement payé
           parentBilling.status = BillingStatus.PAID_PARTIALLY
+        } else {
+          // Sinon, reste en statut validé
+          parentBilling.status = BillingStatus.VALIDATE
         }
       }
 

@@ -29,7 +29,7 @@ export default function MovementList({ movements }: MovementListProps) {
       render: (data) => (
         <div className="flex items-center gap-2">
           <ProductIcon className="h-4 w-4" />
-          <Link href={`/dashboard/products/${data.id}`} className=" text-blue-500 hover:underline">
+          <Link href={`/dashboard/products/${data.stock.productId}`} className=" text-blue-500 hover:underline">
             {data.stock.product.reference}
           </Link>
         </div>
@@ -96,8 +96,6 @@ export default function MovementList({ movements }: MovementListProps) {
       ),
     },
   ]
-
-  console.log(movements)
 
   return (
     <AdminLayout title="Details">

@@ -420,11 +420,21 @@ export default function BillingsSupplierInfo({
 
   const getRefundRatio = (): number => {
     if (refundType === 'full') return 1
-    if (!refundAmount || getMaxRefundableAmount() === 0) return 0
-    return Number(refundAmount) / getMaxRefundableAmount()
+    if (!refundAmount) return 0
+    // Le ratio est calculé par rapport au montant TOTAL de la facture
+    // Cela permet de rembourser aussi ce qui a déjà été payé
+    const totalAmount = Number(billing.amountIncludingVat || 0)
+    if (totalAmount === 0) return 0
+    return Number(refundAmount) / totalAmount
   }
 
   const handleConfirm = async () => {
+    // Vérifier qu'on peut créer un avoir
+    if (!canCreateRefund()) {
+      toast.error('Impossible de créer un avoir : la facture n\'a pas de montant.')
+      return
+    }
+
     if (!validateFields2()) {
       return
     }
@@ -437,34 +447,52 @@ export default function BillingsSupplierInfo({
     let vatAmount: string
 
     if (refundType === 'full') {
-      // Remboursement complet - prendre tous les montants de la facture originale
+      // Remboursement complet - rembourser le montant total de la facture
       amountIncludingVat = billing.amountIncludingVat?.toString() || '0'
       amountExcludingVat = billing.amountExcludingVat?.toString() || '0'
       vatAmount = billing.vatAmount?.toString() || '0'
     } else {
-      // Remboursement partiel - calculer proportionnellement
+      // Remboursement partiel - calculer proportionnellement par rapport au montant TOTAL
+      const totalIncludingVat = Number(billing.amountIncludingVat || 0)
+      const totalExcludingVat = Number(billing.amountExcludingVat || 0)
+      const totalVatAmount = Number(billing.vatAmount || 0)
+
+      // Le montant TTC du remboursement est celui saisi
       amountIncludingVat = refundAmount
-      amountExcludingVat = (Number(billing.amountExcludingVat || 0) * refundRatio).toFixed(2)
-      vatAmount = (Number(billing.vatAmount || 0) * refundRatio).toFixed(2)
+      
+      // Calculer HT et TVA proportionnellement au montant total
+      amountExcludingVat = (totalExcludingVat * refundRatio).toFixed(2)
+      vatAmount = (totalVatAmount * refundRatio).toFixed(2)
     }
 
     // Préparer les items de facturation proportionnels
     const billingItems = _.map(item, (item) => {
       if (refundType === 'full') {
-        // Remboursement complet - reprendre tous les items
+        // Remboursement complet - reprendre tous les items tels quels
         return _.pick(item, ['productId', 'quantity', 'price', 'total', 'discount', 'tva'])
       } else {
-        // Remboursement partiel - calculer proportionnellement
-        const itemRatio = Number(item.total) / Number(billing.amountIncludingVat || 1)
+        // Remboursement partiel - calculer proportionnellement au montant TOTAL
+        // Chaque item est remboursé proportionnellement à sa part dans le total de la facture
+        const itemTotal = Number(item.total || 0)
+        const totalBillingAmount = Number(billing.amountIncludingVat || 1)
+        const itemRatio = itemTotal / totalBillingAmount
+        
+        // Le montant remboursé pour cet item = montant total du remboursement * part de l'item
         const itemRefundAmount = Number(amountIncludingVat) * itemRatio
+
+        // Calculer la quantité proportionnelle si nécessaire
+        // Pour simplifier, on garde la même quantité mais on ajuste le prix unitaire
+        const itemPrice = Number(item.price || 0)
+        const itemQuantity = Number(item.quantity || 0)
+        const adjustedPrice = itemQuantity > 0 ? itemRefundAmount / itemQuantity : itemPrice
 
         return {
           productId: item.productId,
-          quantity: item.quantity, // Vous pourriez ajuster la quantité aussi si nécessaire
-          price: item.price,
+          quantity: itemQuantity,
+          price: adjustedPrice.toFixed(2),
           total: itemRefundAmount.toFixed(2),
-          discount: item.discount,
-          tva: '',
+          discount: item.discount || '0',
+          tva: item.tva || '0',
         }
       }
     })
@@ -506,13 +534,31 @@ export default function BillingsSupplierInfo({
       const response = await webInterface.post(`/dashboard/billings-credit`, body)
       toast.success('Avoir créé avec succès')
       router.visit(`/dashboard/billings/${response.id}`)
-    } catch (error) {
-      toast.error(`Erreur lors de la création de l'avoir: ${error}`)
+    } catch (error: any) {
+      const errorMessage = error?.message || error?.response?.data?.message || 'Erreur lors de la création de l\'avoir'
+      toast.error(errorMessage)
     }
   }
 
   const getMaxRefundableAmount = () => {
-    return Number(billing.remainingPrice) || Number(billing.amountIncludingVat) || 0
+    // Le montant remboursable maximum est le montant total de la facture
+    // Cela permet de rembourser aussi ce qui a déjà été payé
+    return Number(billing.amountIncludingVat || 0)
+  }
+
+  const canCreateRefund = () => {
+    // On peut créer un avoir si la facture a un montant total > 0
+    return getMaxRefundableAmount() > 0
+  }
+
+  const getRemainingAmount = () => {
+    // Montant restant à payer (non payé)
+    return Number(billing.remainingPrice || 0)
+  }
+
+  const getAllocatedAmount = () => {
+    // Montant déjà payé
+    return Number(billing.allocatedPrice || 0)
   }
 
   const handlePrint = () => {
@@ -903,7 +949,14 @@ export default function BillingsSupplierInfo({
               <Button
                 color="primary"
                 label={'Créer facture avoir'}
-                onClick={() => setOpenModalBillingForm(true)}
+                onClick={() => {
+                  if (!canCreateRefund()) {
+                    toast.error('Impossible de créer un avoir : la facture n\'a pas de montant.')
+                    return
+                  }
+                  setOpenModalBillingForm(true)
+                }}
+                disabled={!canCreateRefund()}
               />
             )}
           {(billing.status === BillingStatus.DRAFT || isNil(billing?.parentBillingId)) && (
@@ -1319,7 +1372,10 @@ export default function BillingsSupplierInfo({
                   </p>
                 )}
                 <p className="text-gray-500 text-sm mt-1">
-                  Montant restant à rembourser: {formatNumber(getMaxRefundableAmount())} FCFA
+                  Montant total de la facture: {formatNumber(getMaxRefundableAmount())} FCFA
+                </p>
+                <p className="text-gray-500 text-xs mt-1">
+                  (Montant restant: {formatNumber(getRemainingAmount())} FCFA | Déjà payé: {formatNumber(getAllocatedAmount())} FCFA)
                 </p>
               </div>
             </div>
@@ -1337,7 +1393,10 @@ export default function BillingsSupplierInfo({
                   {formatNumber(getMaxRefundableAmount())} FCFA (Remboursement complet)
                 </p>
                 <p className="text-gray-500 text-sm mt-1">
-                  La facture sera intégralement remboursée
+                  La facture sera intégralement remboursée (montant total)
+                </p>
+                <p className="text-gray-500 text-xs mt-1">
+                  (Montant restant: {formatNumber(getRemainingAmount())} FCFA | Déjà payé: {formatNumber(getAllocatedAmount())} FCFA)
                 </p>
               </div>
             </div>
