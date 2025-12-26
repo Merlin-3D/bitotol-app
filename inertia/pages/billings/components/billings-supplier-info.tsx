@@ -1451,7 +1451,7 @@ export default function BillingsSupplierInfo({
 
       {/* Modal d'impression de facture */}
       <DialogModal
-        title={`Facture #${billing.code}`}
+        title={`${billing.code}`}
         open={openDetailDialog}
         setOpen={() => {
           setOpenDetailDialog(false)
@@ -1463,22 +1463,22 @@ export default function BillingsSupplierInfo({
           {/* Contenu pour l'impression (caché à l'écran) */}
           <div id="receipt-content" className="hidden">
             <div className="text-center">
-              <p className="text-xs">CENTRE DE SANTÉ LA GRACE B</p>
-              <p className="text-xs">--------------------------------</p>
-              <p className="text-xs">FACTURE</p>
-              <p className="text-xs">--------------------------------</p>
-              <p className="text-xs">Réf: #{billing.code}</p>
-              <p className="text-xs">
+              <p className="text-sm">CENTRE DE SANTÉ LA GRACE B</p>
+              <p className="text-sm">--------------------------------</p>
+              <p className="text-sm">FACTURE</p>
+              <p className="text-sm">--------------------------------</p>
+              <p className="text-sm">Réf: #{billing.code}</p>
+              <p className="text-sm">
                 Date: {formatDateTime(billing.billingDate || billing.createdAt, true)}
               </p>
-              <p className="text-xs">Client: {billing.thirdParties?.name || 'N/A'}</p>
+              <p className="text-sm">Client: {billing.thirdParties?.name || 'N/A'}</p>
               {billing.thirdParties?.clientCode && (
-                <p className="text-xs">Vendeur: {billing.user.name}</p>
+                <p className="text-sm">Vendeur: {billing.user.name}</p>
               )}
-              <p className="text-xs">--------------------------------</p>
+              <p className="text-sm">--------------------------------</p>
 
               {item?.map((billingItem, index) => (
-                <div key={index} className="text-xs flex justify-between">
+                <div key={index} className="text-sm flex justify-between">
                   <span>
                     {billingItem.quantity}x {billingItem.name || billingItem.reference}
                   </span>
@@ -1486,42 +1486,42 @@ export default function BillingsSupplierInfo({
                 </div>
               ))}
 
-              <p className="text-xs">--------------------------------</p>
-              <div className="text-xs flex justify-between">
+              <p className="text-sm">--------------------------------</p>
+              <div className="text-sm flex justify-between">
                 <span>Montant HT:</span>
                 <span>{formatNumber(Number(billing.amountExcludingVat || 0))} FCFA</span>
               </div>
               {Number(billing.vatAmount || 0) > 0 && (
-                <div className="text-xs flex justify-between">
+                <div className="text-sm flex justify-between">
                   <span>TVA:</span>
                   <span>{formatNumber(Number(billing.vatAmount || 0))} FCFA</span>
                 </div>
               )}
-              <div className="text-xs flex justify-between">
+              <div className="text-sm flex justify-between">
                 <span>TOTAL TTC:</span>
                 <span>{formatNumber(Number(billing.amountIncludingVat || 0))} FCFA</span>
               </div>
               {billing.allocatedPrice && billing.allocatedPrice > 0 && (
                 <>
-                  <div className="text-xs flex justify-between">
+                  <div className="text-sm flex justify-between">
                     <span>Montant payé:</span>
                     <span>{formatNumber(billing.allocatedPrice)} FCFA</span>
                   </div>
-                  <div className="text-xs flex justify-between">
+                  <div className="text-sm flex justify-between">
                     <span>Reste à payer:</span>
                     <span>{formatNumber(billing.remainingPrice || 0)} FCFA</span>
                   </div>
                 </>
               )}
-              <p className="text-xs">--------------------------------</p>
-              <p className="text-xs">
+              <p className="text-sm">--------------------------------</p>
+              <p className="text-sm">
                 Statut:{' '}
                 {billingStatus.find((s) => s.status === billing.status)?.name || billing.status}
               </p>
-              <p className="text-xs">--------------------------------</p>
-              <p className="text-xs">TVA non applicable</p>
-              <p className="text-xs">--------------------------------</p>
-              <p className="text-xs">AU REVOIR ET À BIENTÔT</p>
+              <p className="text-sm">--------------------------------</p>
+              <p className="text-sm">TVA non applicable</p>
+              <p className="text-sm">--------------------------------</p>
+              <p className="text-sm">AU REVOIR ET À BIENTÔT</p>
             </div>
           </div>
 
