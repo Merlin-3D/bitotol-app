@@ -701,6 +701,8 @@ export default class BillingsController {
     try {
       const query = Billings.query() //@ts-ignore
         .preload('thirdParties')
+        //@ts-ignore
+        .preload('user')
 
       // Appliquer les mêmes filtres que dans la méthode billings
       const status = request.qs().status
@@ -753,9 +755,28 @@ export default class BillingsController {
         if (customer) customerName = customer.name
       }
 
+      // Calculer les totaux TTC par statut
+      const totalsByStatus: Record<string, number> = {}
+      const statusLabels: Record<string, string> = {
+        [BillingStatus.DRAFT]: 'Brouillon (à valider)',
+        [BillingStatus.VALIDATE]: 'Impayée',
+        [BillingStatus.ABANDONED]: 'Abandonnée',
+        [BillingStatus.BEGIN]: 'Règlement commencé',
+        [BillingStatus.PAID_PARTIALLY]: 'Payée (partiellement)',
+        [BillingStatus.PAID]: 'Payée',
+        [BillingStatus.CREDIT_BACK]: 'Avoir remboursée',
+        [BillingStatus.CREDIT_NOTE]: 'Note de crédit',
+      }
+
+      for (const billing of billings) {
+        const billingStatus = billing.status || 'N/A'
+        const amountTTC = Number.parseFloat(billing.amountIncludingVat || '0')
+        totalsByStatus[billingStatus] = (totalsByStatus[billingStatus] || 0) + amountTTC
+      }
+
       // Créer le document PDF avec Promise
       return new Promise<void>((resolve, reject) => {
-        const doc = new PDFDocument({ margin: 50 })
+        const doc = new PDFDocument({ margin: 50, size: 'A4', layout: 'landscape' })
         const buffers: Buffer[] = []
 
         doc.on('data', (chunk) => buffers.push(chunk))
@@ -776,14 +797,21 @@ export default class BillingsController {
         doc.on('error', reject)
 
         // En-tête du document
-        doc.fontSize(20).text('Liste des Factures', { align: 'center' })
+        doc.fontSize(20).font('Helvetica-Bold').text('Liste des Factures', { align: 'center' })
         doc.moveDown()
 
         // Informations de filtrage
         const filterInfo: string[] = []
-        if (status) filterInfo.push(`Statut: ${status}`)
+        if (status) filterInfo.push(`Statut: ${statusLabels[status] || status}`)
         if (customerName) filterInfo.push(`Client: ${customerName}`)
-        if (type) filterInfo.push(`Type: ${type}`)
+        if (type) {
+          const typeLabels: Record<string, string> = {
+            SI: 'Facture standard',
+            DI: "Facture d'acompte",
+            CI: "Facture d'avoir",
+          }
+          filterInfo.push(`Type: ${typeLabels[type] || type}`)
+        }
         if (dateFrom) filterInfo.push(`Date début: ${dateFrom}`)
         if (dateTo) filterInfo.push(`Date fin: ${dateTo}`)
         if (amountMin) filterInfo.push(`Montant min: ${amountMin} FCFA`)
@@ -791,7 +819,12 @@ export default class BillingsController {
         if (reference) filterInfo.push(`Réf.: ${reference}`)
 
         if (filterInfo.length > 0) {
-          doc.fontSize(10).text(`Filtres appliqués: ${filterInfo.join(', ')}`, { align: 'left' })
+          doc
+            .fontSize(10)
+            .font('Helvetica')
+            .text(`Filtres appliqués: ${filterInfo.join(', ')}`, {
+              align: 'left',
+            })
           doc.moveDown()
         }
 
@@ -801,100 +834,160 @@ export default class BillingsController {
         doc.fontSize(10).text(`Total: ${billings.length} facture(s)`, { align: 'left' })
         doc.moveDown(2)
 
-        // Tableau des factures
+        // Tableau des factures avec plus de colonnes
         let yPosition = doc.y
-        const startX = 50
-        const colWidths = [80, 100, 100, 80, 100, 80]
-        const headers = ['Réf.', 'Client', 'Date facturation', 'Montant TTC', 'Statut']
+        const startX = 30
+        const colWidths = [70, 100, 60, 80, 80, 80, 80, 100, 60]
+        const headers = [
+          'Réf.',
+          'Client',
+          'Date',
+          'Montant TTC',
+          'Payé',
+          'Reste à payer',
+          'Créé par',
+          'Statut',
+        ]
 
         // En-têtes du tableau
-        doc.fontSize(10).font('Helvetica-Bold')
+        doc.fontSize(9).font('Helvetica-Bold')
         let xPosition = startX
         headers.forEach((header, index) => {
           doc.text(header, xPosition, yPosition, { width: colWidths[index], align: 'left' })
-          xPosition += colWidths[index] + 10
+          xPosition += colWidths[index] + 5
         })
         yPosition += 20
 
         // Ligne de séparation
-        doc.moveTo(startX, yPosition).lineTo(550, yPosition).stroke()
+        doc.moveTo(startX, yPosition).lineTo(750, yPosition).stroke()
         yPosition += 10
 
         // Données des factures
-        doc.font('Helvetica')
+        doc.font('Helvetica').fontSize(8)
         for (const billing of billings) {
-          if (yPosition > 700) {
+          if (yPosition > 500) {
             // Nouvelle page si nécessaire
             doc.addPage()
             yPosition = 50
+            // Réafficher les en-têtes
+            doc.fontSize(9).font('Helvetica-Bold')
+            xPosition = startX
+            headers.forEach((header, index) => {
+              doc.text(header, xPosition, yPosition, { width: colWidths[index], align: 'left' })
+              xPosition += colWidths[index] + 5
+            })
+            yPosition += 20
+            doc.moveTo(startX, yPosition).lineTo(750, yPosition).stroke()
+            yPosition += 10
+            doc.font('Helvetica').fontSize(8)
           }
 
           const billingDate = billing.billingDate
             ? DateTime.fromISO(billing.billingDate).toFormat('dd/MM/yyyy')
             : 'N/A'
-          // const createdAt = billing.createdAt
-          //   ? DateTime.fromJSDate(billing.createdAt.toJSDate()).toFormat('dd/MM/yyyy')
-          //   : 'N/A'
-          const amount = billing.amountIncludingVat
-            ? `${Number.parseFloat(billing.amountIncludingVat)} FCFA`
-            : '0 FCFA'
+
+          const amountTTC = billing.amountIncludingVat
+            ? Number.parseFloat(billing.amountIncludingVat)
+            : '0.00'
+          const paidAmount = billing.allocatedPrice ? Number(billing.allocatedPrice) : '0.00'
+          const remainingAmount = billing.remainingPrice ? Number(billing.remainingPrice) : '0.00'
+
+          const statusLabel = billing.status
+            ? statusLabels[billing.status] || billing.status
+            : 'N/A'
+
+          // Récupérer le nom de l'utilisateur qui a créé la facture
+          const createdBy = billing.user?.name || 'N/A'
 
           const rowData = [
             billing.code || 'N/A',
-            billing.thirdParties?.name || 'N/A',
+            (billing.thirdParties?.name || 'N/A').substring(0, 25), // Limiter la longueur
             billingDate,
-            amount,
-            billing.status
-              ? [
-                  {
-                    name: 'Brouillon (à valider)',
-                    status: BillingStatus.DRAFT,
-                    type: 'secondary',
-                  },
-                  {
-                    name: 'Impayée',
-                    status: BillingStatus.VALIDATE,
-                    type: 'warning',
-                  },
-                  {
-                    name: 'Abandonnée',
-                    status: BillingStatus.ABANDONED,
-                    type: 'danger',
-                  },
-                  {
-                    name: 'Règlement commencé',
-                    status: BillingStatus.BEGIN,
-                    type: 'primary',
-                  },
-                  {
-                    name: 'Payée (partiellement)',
-                    status: BillingStatus.PAID_PARTIALLY,
-                    type: 'info',
-                  },
-                  {
-                    name: 'Payée',
-                    status: BillingStatus.PAID,
-                    type: 'success',
-                  },
-                  {
-                    name: 'Avoir remboursée',
-                    status: BillingStatus.CREDIT_BACK,
-                    type: 'teal',
-                  },
-                ].find((item) => item.status === billing.status)?.name!
-              : 'N/A',
+            `${amountTTC} FCFA`,
+            `${paidAmount} FCFA`,
+            `${remainingAmount} FCFA`,
+            createdBy.substring(0, 25), // Limiter la longueur
+            statusLabel,
           ]
 
           xPosition = startX
           rowData.forEach((data, index) => {
-            doc.fontSize(9).text(data || 'N/A', xPosition, yPosition, {
+            doc.text(data || 'N/A', xPosition, yPosition, {
               width: colWidths[index],
               align: 'left',
             })
-            xPosition += colWidths[index] + 10
+            xPosition += colWidths[index] + 5
+          })
+          yPosition += 18
+        }
+
+        // Ajouter une nouvelle page pour le résumé
+        doc.addPage()
+        yPosition = 50
+
+        // Résumé avec totaux par statut
+        doc.fontSize(16).font('Helvetica-Bold').text('Résumé par Statut', { align: 'center' })
+        doc.moveDown(2)
+
+        // En-têtes du tableau de résumé
+        doc.fontSize(11).font('Helvetica-Bold')
+        const summaryStartX = 100
+        const summaryColWidths = [300, 150]
+        const summaryHeaders = ['Statut']
+
+        xPosition = summaryStartX
+        summaryHeaders.forEach((header, index) => {
+          doc.text(header, xPosition, yPosition, { width: summaryColWidths[index], align: 'left' })
+          xPosition += summaryColWidths[index] + 10
+        })
+        yPosition += 20
+
+        // Ligne de séparation
+        doc.moveTo(summaryStartX, yPosition).lineTo(550, yPosition).stroke()
+        yPosition += 10
+
+        // Données du résumé
+        doc.font('Helvetica').fontSize(10)
+        let grandTotal = 0
+
+        // Trier les statuts pour un affichage cohérent
+        const sortedStatuses = Object.keys(totalsByStatus).sort()
+
+        for (const billingStatus of sortedStatuses) {
+          const total = totalsByStatus[billingStatus]
+          grandTotal += total
+          const statusLabel = statusLabels[billingStatus] || billingStatus
+
+          xPosition = summaryStartX
+          doc.text(statusLabel, xPosition, yPosition, {
+            width: summaryColWidths[0],
+            align: 'left',
+          })
+          xPosition += summaryColWidths[0] + 10
+          doc.text(`${total} FCFA`, xPosition, yPosition, {
+            width: summaryColWidths[1],
+            align: 'right',
           })
           yPosition += 20
         }
+
+        // Ligne de séparation avant le total général
+        yPosition += 5
+        doc.moveTo(summaryStartX, yPosition).lineTo(550, yPosition).stroke()
+        yPosition += 10
+
+        // Total général
+        doc.fontSize(12).font('Helvetica-Bold')
+        xPosition = summaryStartX
+        doc.text('TOTAL GÉNÉRAL', xPosition, yPosition, {
+          width: summaryColWidths[0],
+          align: 'left',
+        })
+        xPosition += summaryColWidths[0] + 10
+        doc.text(`${grandTotal} FCFA`, xPosition, yPosition, {
+          width: summaryColWidths[1],
+          align: 'right',
+        })
 
         // Finaliser le PDF
         doc.end()
