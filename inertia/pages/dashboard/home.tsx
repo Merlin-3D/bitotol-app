@@ -192,7 +192,7 @@ export default function Home({ stats, alerts, recentBillings }: DashboardProps) 
               {alerts.lowStockProducts.length > 0 && (
                 <div className="border-l-4 border-orange-500 pl-4">
                   <h3 className="font-semibold text-orange-700 mb-2">
-                    Stock faible ({alerts.lowStockProducts.length})
+                    Rupture de stock ({alerts.lowStockProducts.length})
                   </h3>
                   <div className="space-y-2">
                     {alerts.lowStockProducts.map((product) => {

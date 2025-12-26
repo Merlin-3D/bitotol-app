@@ -20,7 +20,7 @@ export default function BillingsDetails({
 }: BillingsDetailsProsp) {
   const [tabValue, setTabValue] = useState<string | number>('infos')
   const [isPending, startTransition] = useTransition()
-  console.log(billing)
+
   const tabContentList = (): { [key: string]: React.ReactNode } => ({
     infos: (
       <BillingsSupplierInfo

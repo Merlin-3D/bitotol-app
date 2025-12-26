@@ -58,6 +58,8 @@ export default function BillingsSupplierInfo({
   products,
   customers,
 }: BillingsSupplierInfoPorps) {
+  const today = new Date().toISOString().split('T')[0]
+
   const { props } = usePage<any>()
   const webInterface = new WebInterface(props.csrfToken)
 
@@ -85,9 +87,11 @@ export default function BillingsSupplierInfo({
   const [openModalBillingForm, setOpenModalBillingForm] = useState(false)
   const [openEditModalBilling, setOpenEditModalBilling] = useState(false)
 
-  const [paymentDate, setPaymentDate] = useState<string | null>()
+  const [paymentDate, setPaymentDate] = useState<string | null>(today)
   const [comment, setComment] = useState<string | null>()
-  const [paymentAmount, setPaymentAmount] = useState<string | number>('')
+  const [paymentAmount, setPaymentAmount] = useState<string | number>(
+    Number(billing.remainingPrice || 0)
+  )
 
   const [openConfirmDeletePayment, setOpenConfirmDeletePayment] = useState(false)
   const [paymentId, setPaymentId] = useState<string>('')
@@ -102,7 +106,7 @@ export default function BillingsSupplierInfo({
   const [fieldErrorRefundAmount, setFieldErrorRefundAmount] = useState<boolean>(false)
 
   const fieldErrorReglementValidate = {
-    amount: paymentAmount,
+    amount: paymentAmount ? paymentAmount.toString() : null,
     paymentDate: paymentDate,
   }
 
@@ -431,7 +435,7 @@ export default function BillingsSupplierInfo({
   const handleConfirm = async () => {
     // Vérifier qu'on peut créer un avoir
     if (!canCreateRefund()) {
-      toast.error('Impossible de créer un avoir : la facture n\'a pas de montant.')
+      toast.error("Impossible de créer un avoir : la facture n'a pas de montant.")
       return
     }
 
@@ -459,7 +463,7 @@ export default function BillingsSupplierInfo({
 
       // Le montant TTC du remboursement est celui saisi
       amountIncludingVat = refundAmount
-      
+
       // Calculer HT et TVA proportionnellement au montant total
       amountExcludingVat = (totalExcludingVat * refundRatio).toFixed(2)
       vatAmount = (totalVatAmount * refundRatio).toFixed(2)
@@ -476,7 +480,7 @@ export default function BillingsSupplierInfo({
         const itemTotal = Number(item.total || 0)
         const totalBillingAmount = Number(billing.amountIncludingVat || 1)
         const itemRatio = itemTotal / totalBillingAmount
-        
+
         // Le montant remboursé pour cet item = montant total du remboursement * part de l'item
         const itemRefundAmount = Number(amountIncludingVat) * itemRatio
 
@@ -535,7 +539,8 @@ export default function BillingsSupplierInfo({
       toast.success('Avoir créé avec succès')
       router.visit(`/dashboard/billings/${response.id}`)
     } catch (error: any) {
-      const errorMessage = error?.message || error?.response?.data?.message || 'Erreur lors de la création de l\'avoir'
+      const errorMessage =
+        error?.message || error?.response?.data?.message || "Erreur lors de la création de l'avoir"
       toast.error(errorMessage)
     }
   }
@@ -544,6 +549,12 @@ export default function BillingsSupplierInfo({
     // Le montant remboursable maximum est le montant total de la facture
     // Cela permet de rembourser aussi ce qui a déjà été payé
     return Number(billing.amountIncludingVat || 0)
+  }
+
+  const getMaxRemaningAmount = () => {
+    // Le montant remboursable maximum est le montant total de la facture
+    // Cela permet de rembourser aussi ce qui a déjà été payé
+    return Number(billing.remainingPrice || 0)
   }
 
   const canCreateRefund = () => {
@@ -951,7 +962,7 @@ export default function BillingsSupplierInfo({
                 label={'Créer facture avoir'}
                 onClick={() => {
                   if (!canCreateRefund()) {
-                    toast.error('Impossible de créer un avoir : la facture n\'a pas de montant.')
+                    toast.error("Impossible de créer un avoir : la facture n'a pas de montant.")
                     return
                   }
                   setOpenModalBillingForm(true)
@@ -1134,6 +1145,7 @@ export default function BillingsSupplierInfo({
               <Input
                 type="number"
                 value={paymentAmount}
+                placeholder={`Montant maximum: ${formatNumber(getMaxRemaningAmount())} FCFA`}
                 block
                 onChange={(e) => setPaymentAmount(e.target.value)}
                 error={fieldErrorReglement?.amount}
@@ -1375,7 +1387,8 @@ export default function BillingsSupplierInfo({
                   Montant total de la facture: {formatNumber(getMaxRefundableAmount())} FCFA
                 </p>
                 <p className="text-gray-500 text-xs mt-1">
-                  (Montant restant: {formatNumber(getRemainingAmount())} FCFA | Déjà payé: {formatNumber(getAllocatedAmount())} FCFA)
+                  (Montant restant: {formatNumber(getRemainingAmount())} FCFA | Déjà payé:{' '}
+                  {formatNumber(getAllocatedAmount())} FCFA)
                 </p>
               </div>
             </div>
@@ -1396,7 +1409,8 @@ export default function BillingsSupplierInfo({
                   La facture sera intégralement remboursée (montant total)
                 </p>
                 <p className="text-gray-500 text-xs mt-1">
-                  (Montant restant: {formatNumber(getRemainingAmount())} FCFA | Déjà payé: {formatNumber(getAllocatedAmount())} FCFA)
+                  (Montant restant: {formatNumber(getRemainingAmount())} FCFA | Déjà payé:{' '}
+                  {formatNumber(getAllocatedAmount())} FCFA)
                 </p>
               </div>
             </div>

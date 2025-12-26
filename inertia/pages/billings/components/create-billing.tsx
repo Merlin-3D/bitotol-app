@@ -30,6 +30,7 @@ export default function CreateInvoice({
   openAddModal,
   handleOpenModal,
 }: CreateInvoiceProsp) {
+
   const { data, setData, post, put, processing, reset } = useForm({
     type: billingType[0].value,
     thirdPartiesId: '',
@@ -177,7 +178,7 @@ export default function CreateInvoice({
                         invoice: 'Facture avoir',
                       },
                     ]
-                  : billingType.slice(0, 2)
+                  : billingType.slice(0, 1)
               }
               getLabel={(value) => value!.name}
               getKey={(value) => value!.name}

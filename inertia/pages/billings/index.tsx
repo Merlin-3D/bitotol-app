@@ -171,6 +171,12 @@ export default function Billings({ customers, billings }: BillingsProps) {
       ),
     },
     {
+      Header: 'Crée par',
+      accessor: 'user',
+      sortable: false,
+      render: (data) => <div className="flex items-start capitalize">{data.user.name}</div>,
+    },
+    {
       Header: 'Date de création',
       accessor: 'createdAt',
       render: (data) => <span>{formatDateTime(data.createdAt!, true)}</span>,

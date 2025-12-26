@@ -52,11 +52,10 @@ export default class WebController {
     // Produits avec stock faible (inférieur à la limite d'alerte)
     const lowStockProducts = allProducts.filter((product) => {
       if (product.type !== 'P') return false
-      const totalQuantity = _.sumBy(product.stocks, 'virtualQuantity')
-      const limitStock = product.limitStockAlert ? product.limitStockAlert : 0
-      return totalQuantity > 0 && totalQuantity <= limitStock * 1.2 && totalQuantity > limitStock
-    })
 
+      const totalQuantity = _.sumBy(product.stocks, 'virtualQuantity')
+      return totalQuantity === 0
+    })
     // Produits expirés ou proches de l'expiration
     const today = DateTime.now()
     const expiredProducts = allProducts.filter((product) => {
@@ -350,7 +349,7 @@ export default class WebController {
       query.where('amountIncludingVat', '<=', amountMax)
     }
 
-    const billings = await query.orderBy('created_at', 'desc')
+    const billings = await query.preload('user').orderBy('created_at', 'desc')
     const customers = await ThirdParties.query().orderBy('created_at', 'desc')
 
     return inertia.render('billings/index', { billings, customers }, { title: 'Billings' })
